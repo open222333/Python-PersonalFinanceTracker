@@ -1,0 +1,55 @@
+[LOG]
+; 關閉log功能 輸入選項 (true, True, 1) 預設 不關閉
+; LOG_DISABLE=1
+
+; logs路徑 預設 logs
+; LOG_PATH=
+
+; 關閉紀錄log檔案 輸入選項 (true, True, 1)  預設 不關閉
+; LOG_FILE_DISABLE=1
+
+; 設定紀錄log等級 DEBUG,INFO,WARNING,ERROR,CRITICAL 預設WARNING
+; LOG_LEVEL=
+
+[SETTING]
+; flask json 設定檔路徑 預設值 conf/flask.json
+; FLASK_JSON_PATH=
+
+; 後台管理頁面名稱 預設值 後台管理
+; ADMIN_TITLE=
+
+[MONGO]
+; MongoDB 連線 URI 預設 mongodb://localhost:27017
+MONGO_URI=mongodb://localhost:27017
+
+; MongoDB 資料庫名稱 預設 flask_app
+MONGO_DB=flask_app
+
+[MYSQL]
+; MySQL 主機 預設 localhost
+MYSQL_HOST=localhost
+
+; MySQL 埠號 預設 3306
+; MYSQL_PORT=3306
+
+; MySQL 使用者 預設 root
+MYSQL_USER=root
+
+; MySQL 密碼
+MYSQL_PASSWORD=
+
+; MySQL 資料庫名稱 預設 flask_app
+MYSQL_DB=flask_app
+
+[REDIS]
+; Redis 主機 預設 localhost
+REDIS_HOST=localhost
+
+; Redis 埠號 預設 6379
+; REDIS_PORT=6379
+
+; Redis 密碼（無則留空）
+; REDIS_PASSWORD=
+
+; Redis DB 編號 預設 0
+; REDIS_DB=0
