@@ -1,0 +1,103 @@
+upstream flask_app {
+    server app:5000;
+}
+
+# ============================================================
+# Cloudflare SSL (Origin CA) 設定範本
+# 使用情境：域名透過 Cloudflare 代理，SSL 模式設為 Full 或 Full (Strict)
+#
+# 前置作業：
+#   1. Cloudflare Dashboard → SSL/TLS → Origin Server → Create Certificate
+#   2. 將產生的 .pem / .key 放到伺服器，路徑對應下方 ssl_certificate*
+#   3. SSL/TLS 模式改為「Full (Strict)」以確保端到端加密
+# ============================================================
+
+# HTTP → HTTPS 重導向
+# （Cloudflare 啟用「Always Use HTTPS」後此段可省略，但保留以備直連伺服器時用）
+server {
+    listen       80;
+    server_name  api.example.com;    # ← 替換為你的域名
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS（Cloudflare Origin CA 憑證）
+server {
+    listen       443 ssl;
+    server_name  api.example.com;    # ← 替換為你的域名
+
+    # Cloudflare Origin CA 憑證（有效期最長 15 年）
+    ssl_certificate     /etc/ssl/cloudflare/origin.pem;   # ← 替換路徑
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;   # ← 替換路徑
+
+    # SSL 安全設定
+    ssl_protocols             TLSv1.2 TLSv1.3;
+    ssl_ciphers               HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache         shared:SSL:10m;
+    ssl_session_timeout       1d;
+
+    # --------------------------------------------------------
+    # 還原訪客真實 IP（Cloudflare 會用自己的 IP 連進來）
+    # 讓 $remote_addr 回到真實訪客 IP
+    # 清單來源：https://www.cloudflare.com/ips/
+    # --------------------------------------------------------
+    # IPv4
+    set_real_ip_from  173.245.48.0/20;
+    set_real_ip_from  103.21.244.0/22;
+    set_real_ip_from  103.22.200.0/22;
+    set_real_ip_from  103.31.4.0/22;
+    set_real_ip_from  141.101.64.0/18;
+    set_real_ip_from  108.162.192.0/18;
+    set_real_ip_from  190.93.240.0/20;
+    set_real_ip_from  188.114.96.0/20;
+    set_real_ip_from  197.234.240.0/22;
+    set_real_ip_from  198.41.128.0/17;
+    set_real_ip_from  162.158.0.0/15;
+    set_real_ip_from  104.16.0.0/13;
+    set_real_ip_from  104.24.0.0/14;
+    set_real_ip_from  172.64.0.0/13;
+    set_real_ip_from  131.0.72.0/22;
+    # IPv6
+    set_real_ip_from  2400:cb00::/32;
+    set_real_ip_from  2606:4700::/32;
+    set_real_ip_from  2803:f800::/32;
+    set_real_ip_from  2405:b500::/32;
+    set_real_ip_from  2405:8100::/32;
+    set_real_ip_from  2a06:98c0::/29;
+    set_real_ip_from  2c0f:f248::/32;
+    # 使用 CF-Connecting-IP header 取得真實 IP
+    real_ip_header    CF-Connecting-IP;
+
+    # 最大上傳大小
+    client_max_body_size 20M;
+
+    access_log  /var/log/nginx/access.log;
+    error_log   /var/log/nginx/error.log;
+
+    location / {
+        proxy_pass         http://flask_app;
+        proxy_http_version 1.1;
+
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        # 將 Cloudflare 真實 IP header 往後端傳遞（選用）
+        proxy_set_header   CF-Connecting-IP  $http_cf_connecting_ip;
+
+        proxy_connect_timeout  60s;
+        proxy_send_timeout     60s;
+        proxy_read_timeout     60s;
+    }
+
+    # 健康檢查端點（由 nginx 直接回應，不轉發到後端）
+    location /nginx-health {
+        access_log  off;
+        return      200 "ok\n";
+        add_header  Content-Type text/plain;
+    }
+}

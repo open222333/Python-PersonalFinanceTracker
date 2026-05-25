@@ -128,3 +128,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Nginx conf（實際設定不納入版控，請從 *.default 複製）
+conf/nginx/conf.d/*.conf

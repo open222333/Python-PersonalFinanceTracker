@@ -20,6 +20,13 @@ from src import FLASK_PORT
 
 app = create_app(TestingConfig)
 
+# 初始化理財系統預設分類
+try:
+    from src.models.finance import Category
+    Category.init_defaults()
+except Exception as _e:
+    print(f'[init] 理財分類初始化略過（DB 可能尚未建立）：{_e}')
+
 admin = User.find_by_username('admin')
 if not admin:
     User.create('admin', 'admin', role='admin')

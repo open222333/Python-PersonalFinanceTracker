@@ -6,6 +6,13 @@ from app.auth.view import app_auth
 from app.user.view import app_user
 from app.admin.view import app_admin
 from app.log.view import app_log
+# 理財追蹤系統 Blueprints
+from app.finance.dashboard.view import app_finance_dashboard
+from app.finance.view import app_finance_category
+from app.finance.transaction.view import app_finance_transaction
+from app.finance.stock.view import app_finance_stock
+from app.finance.budget.view import app_finance_budget
+from app.finance.report.view import app_finance_report
 from src import FLASK_JSON_PATH
 import json
 
@@ -57,6 +64,13 @@ def create_app(confgi_object=None):
     app.register_blueprint(blueprint=app_user, url_prefix='/user')
     app.register_blueprint(blueprint=app_admin, url_prefix='/admin')
     app.register_blueprint(blueprint=app_log, url_prefix='/log')
+    # 理財追蹤系統
+    app.register_blueprint(blueprint=app_finance_dashboard,   url_prefix='/finance')
+    app.register_blueprint(blueprint=app_finance_category,   url_prefix='/finance/category')
+    app.register_blueprint(blueprint=app_finance_transaction, url_prefix='/finance/transaction')
+    app.register_blueprint(blueprint=app_finance_stock,      url_prefix='/finance/stock')
+    app.register_blueprint(blueprint=app_finance_budget,     url_prefix='/finance/budget')
+    app.register_blueprint(blueprint=app_finance_report,     url_prefix='/finance/report')
     if confgi_object:
         app.config.from_object(confgi_object)
     return app

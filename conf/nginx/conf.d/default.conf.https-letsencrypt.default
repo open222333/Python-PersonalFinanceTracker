@@ -1,0 +1,61 @@
+upstream flask_app {
+    server app:5000;
+}
+
+# HTTP → HTTPS 強制導向
+server {
+    listen      80;
+    server_name your.domain.com;    # ← 替換為你的域名
+
+    # Let's Encrypt certbot webroot 驗證路徑（自動續約用）
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS
+server {
+    listen      443 ssl;
+    server_name your.domain.com;    # ← 替換為你的域名
+
+    ssl_certificate     /etc/letsencrypt/live/your.domain.com/fullchain.pem;  # ← 替換域名
+    ssl_certificate_key /etc/letsencrypt/live/your.domain.com/privkey.pem;    # ← 替換域名
+
+    ssl_protocols             TLSv1.2 TLSv1.3;
+    ssl_ciphers               HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache         shared:SSL:10m;
+    ssl_session_timeout       1d;
+
+    # HSTS（可選，強制瀏覽器永遠使用 HTTPS）
+    # add_header Strict-Transport-Security "max-age=63072000" always;
+
+    client_max_body_size 20M;
+
+    access_log  /var/log/nginx/access.log;
+    error_log   /var/log/nginx/error.log;
+
+    location / {
+        proxy_pass         http://flask_app;
+        proxy_http_version 1.1;
+
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout  60s;
+        proxy_send_timeout     60s;
+        proxy_read_timeout     60s;
+    }
+
+    location /nginx-health {
+        access_log  off;
+        return      200 "ok\n";
+        add_header  Content-Type text/plain;
+    }
+}

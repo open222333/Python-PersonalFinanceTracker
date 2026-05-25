@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ admin_title }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    /* ── 基礎 ── */
+    body { background: #f0f2f8; font-size: .9rem; }
+
+    /* ── 登入頁 ── */
+    #page-login {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 60%, #24243e 100%);
+    }
+    .login-card { border: none; border-radius: 14px; width: min(400px, 92vw); }
+    .login-logo { font-size: 2.8rem; }
+
+    /* ── 儀表板整體佈局 ── */
+    #page-dashboard { display: none; flex-direction: column; height: 100vh; }
+    .top-navbar { flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.25); z-index: 100; }
+    .main-body { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 225px; flex-shrink: 0;
+      background: #1a1d2e; display: flex; flex-direction: column; overflow-y: auto;
+    }
+    .sidebar .nav-link {
+      color: #9aa0b4; padding: .6rem 1.2rem; border-radius: 0;
+      font-size: .875rem; display: flex; align-items: center; gap: .55rem;
+      transition: background .15s, color .15s; cursor: pointer;
+    }
+    .sidebar .nav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+    .sidebar .nav-link.active { background: rgba(99,132,255,.18); color: #7a9fff; font-weight: 600; }
+    .sidebar .nav-link i { font-size: 1rem; width: 1.1rem; text-align: center; }
+    .sidebar .nav-section {
+      font-size: .68rem; text-transform: uppercase; letter-spacing: .1em;
+      color: #4b5272; padding: 1rem 1.2rem .35rem;
+    }
+    .sidebar-footer {
+      margin-top: auto; padding: .9rem 1.2rem;
+      border-top: 1px solid rgba(255,255,255,.06);
+      font-size: .8rem; color: #6b7494;
+    }
+
+    /* ── 內容區 ── */
+    .content-area { flex: 1; overflow-y: auto; padding: 1.75rem; }
+
+    /* ── 摘要卡片 ── */
+    .stat-card {
+      border: none; border-radius: 12px; padding: 1.25rem 1.5rem;
+      color: #fff; position: relative; overflow: hidden;
+    }
+    .stat-card .stat-icon {
+      font-size: 2.5rem; opacity: .25; position: absolute; right: 1rem; top: .75rem;
+    }
+    .stat-card .stat-value { font-size: 1.65rem; font-weight: 700; }
+    .stat-card .stat-label { font-size: .8rem; opacity: .85; margin-bottom: .1rem; }
+    .bg-income  { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .bg-expense { background: linear-gradient(135deg, #ee0979, #ff6a00); }
+    .bg-net     { background: linear-gradient(135deg, #2980b9, #6dd5fa); }
+    .bg-stock   { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+
+    /* ── 表格 ── */
+    .table th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: #6b7494; font-weight: 600; }
+    .table td { vertical-align: middle; }
+
+    /* ── Badge ── */
+    .badge-income  { background: #d4edda; color: #155724; }
+    .badge-expense { background: #f8d7da; color: #721c24; }
+    .badge-buy     { background: #cce5ff; color: #004085; }
+    .badge-sell    { background: #fff3cd; color: #856404; }
+    .badge-dividend{ background: #d4edda; color: #155724; }
+
+    /* ── 預算 Progress Bar ── */
+    .progress { height: 8px; border-radius: 4px; }
+
+    /* ── 手機版 ── */
+    .hamburger-btn { display: none; }
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 1040;
+    }
+    @media (max-width: 767px) {
+      .hamburger-btn { display: flex; }
+      .sidebar {
+        position: fixed; top: 0; left: 0;
+        width: 260px; height: 100vh; z-index: 1050;
+        transform: translateX(-100%); transition: transform .25s ease;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.open { display: block; }
+      .content-area { padding: 1rem .75rem; }
+    }
+
+    /* ── 其他 ── */
+    .chart-container { position: relative; height: 260px; }
+    .section-title { font-weight: 700; font-size: 1.05rem; color: #2d3561; margin-bottom: 1.1rem; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+    .stock-subtab .nav-link { font-size: .82rem; padding: .35rem .8rem; }
+    .color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    #loading-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(255,255,255,.6); z-index: 9999;
+      align-items: center; justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     Loading overlay
+════════════════════════════════════ -->
+<div id="loading-overlay">
+  <div class="spinner-border text-primary" role="status"></div>
+</div>
+
+<!-- ════════════════════════════════════
+     登入頁
+════════════════════════════════════ -->
+<div id="page-login">
+  <div class="card login-card shadow-lg p-4">
+    <div class="text-center mb-4">
+      <div class="login-logo">💰</div>
+      <h4 class="fw-bold mt-2">個人理財追蹤系統</h4>
+      <p class="text-muted small">請登入以繼續</p>
+    </div>
+    <div id="login-error" class="alert alert-danger py-2 d-none"></div>
+    <div class="mb-3">
+      <label class="form-label small fw-semibold">使用者名稱</label>
+      <input id="login-username" type="text" class="form-control" placeholder="admin"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <div class="mb-4">
+      <label class="form-label small fw-semibold">密碼</label>
+      <input id="login-password" type="password" class="form-control" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn btn-primary w-100 fw-semibold" onclick="doLogin()">
+      <i class="bi bi-box-arrow-in-right me-1"></i>登入
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     主控台
+════════════════════════════════════ -->
+<div id="page-dashboard">
+
+  <!-- Top Navbar -->
+  <nav class="top-navbar navbar navbar-dark bg-dark px-3">
+    <button class="btn btn-sm btn-outline-secondary hamburger-btn me-2" onclick="openSidebar()">
+      <i class="bi bi-list fs-5"></i>
+    </button>
+    <span class="navbar-brand fw-bold mb-0 fs-6">
+      <i class="bi bi-cash-stack me-1 text-warning"></i>個人理財追蹤系統
+    </span>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <span class="text-light small d-none d-sm-block">
+        本月淨額：<strong id="nav-net-amount" class="text-info">—</strong>
+      </span>
+      <span class="text-light small d-none d-md-block" id="nav-username"></span>
+      <button class="btn btn-sm btn-outline-danger" onclick="doLogout()">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+  </nav>
+
+  <div class="main-body">
+    <!-- Sidebar backdrop (mobile) -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div class="nav-section">主選單</div>
+      <a class="nav-link active" id="nav-dashboard"     onclick="switchTab('dashboard')">
+        <i class="bi bi-grid-1x2"></i>儀表板
+      </a>
+      <a class="nav-link" id="nav-transactions"         onclick="switchTab('transactions')">
+        <i class="bi bi-arrow-left-right"></i>收支記錄
+      </a>
+      <a class="nav-link" id="nav-stocks"               onclick="switchTab('stocks')">
+        <i class="bi bi-graph-up-arrow"></i>股票管理
+      </a>
+
+      <div class="nav-section">設定</div>
+      <a class="nav-link" id="nav-categories"           onclick="switchTab('categories')">
+        <i class="bi bi-tags"></i>分類管理
+      </a>
+      <a class="nav-link" id="nav-budgets"              onclick="switchTab('budgets')">
+        <i class="bi bi-wallet2"></i>預算管理
+      </a>
+
+      <div class="nav-section">分析</div>
+      <a class="nav-link" id="nav-reports"              onclick="switchTab('reports')">
+        <i class="bi bi-bar-chart-line"></i>報表分析
+      </a>
+      <a class="nav-link" id="nav-export"               onclick="switchTab('export')">
+        <i class="bi bi-cloud-download"></i>資料匯出
+      </a>
+
+      <div class="sidebar-footer">
+        <i class="bi bi-lock me-1"></i>JWT 安全登入
+      </div>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="content-area">
+
+      <!-- ─── 儀表板 ─── -->
+      <div id="tab-dashboard">
+        <p class="section-title"><i class="bi bi-grid-1x2 me-2 text-primary"></i>儀表板</p>
+
+        <!-- 摘要卡片 -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="stat-card bg-income">
+              <div class="stat-label">本月收入</div>
+              <div class="stat-value" id="dash-income">—</div>
+              <i class="bi bi-arrow-down-circle stat-icon"></i>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card bg-expense">
+              <div class="stat-label">本月支出</div>
+              <div class="stat-value" id="dash-expense">—</div>
+              <i class="bi bi-arrow-up-circle stat-icon"></i>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card bg-net">
+              <div class="stat-label">本月淨額</div>
+              <div class="stat-value" id="dash-net">—</div>
+              <i class="bi bi-wallet stat-icon"></i>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card bg-stock">
+              <div class="stat-label">持股種類</div>
+              <div class="stat-value" id="dash-stocks">—</div>
+              <i class="bi bi-briefcase stat-icon"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 圖表列 -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-7">
+            <div class="card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="small">近 12 個月收支趨勢</strong>
+                <select id="dash-year-sel" class="form-select form-select-sm w-auto" onchange="loadDashboardCharts()"></select>
+              </div>
+              <div class="chart-container"><canvas id="chart-trend"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-5">
+            <div class="card p-3">
+              <strong class="small d-block mb-2">本月支出分類</strong>
+              <div class="chart-container"><canvas id="chart-pie"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 最近5筆交易 -->
+        <div class="card p-3">
+          <strong class="small d-block mb-3">最近交易記錄</strong>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr>
+                <th>日期</th><th>類型</th><th>金額</th><th>分類</th><th>說明</th>
+              </tr></thead>
+              <tbody id="dash-recent-tbody"><tr><td colspan="5" class="text-center text-muted">載入中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 收支記錄 ─── -->
+      <div id="tab-transactions" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <p class="section-title mb-0"><i class="bi bi-arrow-left-right me-2 text-primary"></i>收支記錄</p>
+          <button class="btn btn-primary btn-sm" onclick="openTxModal()">
+            <i class="bi bi-plus-lg me-1"></i>新增
+          </button>
+        </div>
+
+        <!-- 篩選列 -->
+        <div class="card p-3 mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-6 col-md-2">
+              <label class="form-label small mb-1">開始日期</label>
+              <input type="date" id="tx-filter-from" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small mb-1">結束日期</label>
+              <input type="date" id="tx-filter-to" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small mb-1">類型</label>
+              <select id="tx-filter-type" class="form-select form-select-sm">
+                <option value="">全部</option>
+                <option value="income">收入</option>
+                <option value="expense">支出</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small mb-1">分類</label>
+              <select id="tx-filter-cat" class="form-select form-select-sm">
+                <option value="">全部分類</option>
+              </select>
+            </div>
+            <div class="col-8 col-md-3">
+              <label class="form-label small mb-1">關鍵字</label>
+              <input type="text" id="tx-filter-kw" class="form-control form-control-sm" placeholder="描述 / 備注">
+            </div>
+            <div class="col-4 col-md-1">
+              <button class="btn btn-primary btn-sm w-100" onclick="loadTransactions(1)">查詢</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 表格 -->
+        <div class="card p-3">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr>
+                <th>日期</th><th>類型</th><th class="text-end">金額</th>
+                <th>分類</th><th>說明</th><th style="width:90px">操作</th>
+              </tr></thead>
+              <tbody id="tx-tbody"><tr><td colspan="6" class="text-center text-muted">請點擊查詢</td></tr></tbody>
+            </table>
+          </div>
+          <!-- 分頁 -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <small class="text-muted" id="tx-page-info"></small>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" id="tx-prev-btn" onclick="loadTransactions(txPage-1)" disabled>上一頁</button>
+              <button class="btn btn-outline-secondary btn-sm" id="tx-next-btn" onclick="loadTransactions(txPage+1)" disabled>下一頁</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 股票管理 ─── -->
+      <div id="tab-stocks" class="d-none">
+        <p class="section-title"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>股票管理</p>
+
+        <!-- 子頁籤 -->
+        <ul class="nav nav-tabs stock-subtab mb-3" id="stock-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" onclick="switchStockTab('records')" id="stab-records">交易記錄</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" onclick="switchStockTab('portfolio')" id="stab-portfolio">持倉總覽</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" onclick="switchStockTab('dividend')" id="stab-dividend">股利收益</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" onclick="switchStockTab('pnl')" id="stab-pnl">損益分析</a>
+          </li>
+        </ul>
+
+        <!-- 交易記錄 -->
+        <div id="stab-content-records">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex gap-2 flex-wrap">
+              <input type="date" id="sk-from" class="form-control form-control-sm" style="width:140px">
+              <input type="date" id="sk-to"   class="form-control form-control-sm" style="width:140px">
+              <input type="text" id="sk-ticker" class="form-control form-control-sm" placeholder="股票代號" style="width:110px">
+              <select id="sk-action" class="form-select form-select-sm" style="width:100px">
+                <option value="">全部</option>
+                <option value="buy">買入</option>
+                <option value="sell">賣出</option>
+                <option value="dividend">股利</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="loadStockRecords(1)">查詢</button>
+            </div>
+            <button class="btn btn-success btn-sm" onclick="openStockModal()">
+              <i class="bi bi-plus-lg me-1"></i>新增
+            </button>
+          </div>
+          <div class="card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr>
+                  <th>日期</th><th>股票</th><th>市場</th><th>操作</th>
+                  <th class="text-end">股數</th><th class="text-end">單價</th>
+                  <th class="text-end">金額</th><th class="text-end">手續費</th>
+                  <th style="width:90px">操作</th>
+                </tr></thead>
+                <tbody id="sk-tbody"><tr><td colspan="9" class="text-center text-muted">請點擊查詢</td></tr></tbody>
+              </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <small class="text-muted" id="sk-page-info"></small>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" id="sk-prev-btn" onclick="loadStockRecords(skPage-1)" disabled>上一頁</button>
+                <button class="btn btn-outline-secondary btn-sm" id="sk-next-btn" onclick="loadStockRecords(skPage+1)" disabled>下一頁</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 持倉總覽 -->
+        <div id="stab-content-portfolio" class="d-none">
+          <div class="card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr>
+                  <th>股票代號</th><th>公司名稱</th><th>市場</th>
+                  <th class="text-end">持有股數</th><th class="text-end">平均成本</th><th class="text-end">總成本</th>
+                </tr></thead>
+                <tbody id="portfolio-tbody"><tr><td colspan="6" class="text-center text-muted">載入中…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 股利收益 -->
+        <div id="stab-content-dividend" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card p-3">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead><tr>
+                      <th>股票代號</th><th>公司名稱</th>
+                      <th class="text-end">累計股利</th><th class="text-end">次數</th>
+                    </tr></thead>
+                    <tbody id="dividend-tbody"><tr><td colspan="4" class="text-center text-muted">載入中…</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card p-3">
+                <strong class="small d-block mb-2">各股票股利金額</strong>
+                <div class="chart-container"><canvas id="chart-dividend"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 損益分析 -->
+        <div id="stab-content-pnl" class="d-none">
+          <div class="card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr>
+                  <th>股票代號</th>
+                  <th class="text-end">賣出金額</th>
+                  <th class="text-end">已實現損益</th>
+                  <th class="text-end">損益率</th>
+                </tr></thead>
+                <tbody id="pnl-tbody"><tr><td colspan="4" class="text-center text-muted">載入中…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 分類管理 ─── -->
+      <div id="tab-categories" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <p class="section-title mb-0"><i class="bi bi-tags me-2 text-primary"></i>分類管理</p>
+          <button class="btn btn-primary btn-sm" onclick="openCatModal()">
+            <i class="bi bi-plus-lg me-1"></i>新增分類
+          </button>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card p-3">
+              <strong class="small d-block mb-3 text-danger"><i class="bi bi-arrow-up-circle me-1"></i>支出分類</strong>
+              <div id="cat-expense-list"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <strong class="small d-block mb-3 text-success"><i class="bi bi-arrow-down-circle me-1"></i>收入分類</strong>
+              <div id="cat-income-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 預算管理 ─── -->
+      <div id="tab-budgets" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <p class="section-title mb-0"><i class="bi bi-wallet2 me-2 text-primary"></i>預算管理</p>
+          <div class="d-flex gap-2 align-items-center">
+            <select id="budget-year" class="form-select form-select-sm" style="width:90px" onchange="loadBudgets()"></select>
+            <select id="budget-month" class="form-select form-select-sm" style="width:80px" onchange="loadBudgets()">
+              <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+              <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+              <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+              <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openBudgetModal()">
+              <i class="bi bi-plus-lg me-1"></i>設定預算
+            </button>
+          </div>
+        </div>
+        <div class="card p-3">
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead><tr>
+                <th>分類</th>
+                <th class="text-end">預算金額</th>
+                <th class="text-end">已使用</th>
+                <th class="text-end">剩餘</th>
+                <th style="width:160px">使用率</th>
+                <th style="width:70px">操作</th>
+              </tr></thead>
+              <tbody id="budget-tbody"><tr><td colspan="6" class="text-center text-muted">請選擇年月</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 報表分析 ─── -->
+      <div id="tab-reports" class="d-none">
+        <p class="section-title"><i class="bi bi-bar-chart-line me-2 text-primary"></i>報表分析</p>
+        <div class="card p-3 mb-3">
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="small fw-semibold mb-0">年份</label>
+            <select id="rpt-year" class="form-select form-select-sm" style="width:90px"></select>
+            <label class="small fw-semibold mb-0">月份</label>
+            <select id="rpt-month" class="form-select form-select-sm" style="width:80px">
+              <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+              <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+              <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+              <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="loadReports()">查詢</button>
+          </div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-7">
+            <div class="card p-3">
+              <strong class="small d-block mb-2">年度收支趨勢</strong>
+              <div class="chart-container"><canvas id="chart-yearly"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-5">
+            <div class="card p-3">
+              <strong class="small d-block mb-2">本月支出分類佔比</strong>
+              <div class="chart-container"><canvas id="chart-cat-pie"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="card p-3">
+          <strong class="small d-block mb-3">各月份明細</strong>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr>
+                <th>月份</th>
+                <th class="text-end text-success">收入</th>
+                <th class="text-end text-danger">支出</th>
+                <th class="text-end">淨額</th>
+              </tr></thead>
+              <tbody id="rpt-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 資料匯出 ─── -->
+      <div id="tab-export" class="d-none">
+        <p class="section-title"><i class="bi bi-cloud-download me-2 text-primary"></i>資料匯出</p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card p-4">
+              <h6 class="fw-bold mb-3"><i class="bi bi-arrow-left-right me-1 text-primary"></i>收支記錄匯出</h6>
+              <div class="mb-3">
+                <label class="form-label small">開始日期</label>
+                <input type="date" id="exp-tx-from" class="form-control form-control-sm">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small">結束日期</label>
+                <input type="date" id="exp-tx-to" class="form-control form-control-sm">
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm flex-fill" onclick="doExport('transactions','csv')">
+                  <i class="bi bi-filetype-csv me-1"></i>匯出 CSV
+                </button>
+                <button class="btn btn-success btn-sm flex-fill" onclick="doExport('transactions','excel')">
+                  <i class="bi bi-file-earmark-excel me-1"></i>匯出 Excel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-4">
+              <h6 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-1 text-success"></i>股票記錄匯出</h6>
+              <div class="mb-3">
+                <label class="form-label small">開始日期</label>
+                <input type="date" id="exp-sk-from" class="form-control form-control-sm">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small">結束日期</label>
+                <input type="date" id="exp-sk-to" class="form-control form-control-sm">
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm flex-fill" onclick="doExport('stocks','csv')">
+                  <i class="bi bi-filetype-csv me-1"></i>匯出 CSV
+                </button>
+                <button class="btn btn-success btn-sm flex-fill" onclick="doExport('stocks','excel')">
+                  <i class="bi bi-file-earmark-excel me-1"></i>匯出 Excel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-info mt-3 small">
+          <i class="bi bi-info-circle me-1"></i>
+          CSV 檔案以 UTF-8 BOM 編碼輸出，可直接以 Excel 開啟並正確顯示中文。<br>
+          Excel 檔案格式為 .xlsx，支援多欄位資料與格式化。
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main-body -->
+</div><!-- /page-dashboard -->
+
+
+<!-- ════════════════════════════════════
+     Modals
+════════════════════════════════════ -->
+
+<!-- 收支記錄 Modal -->
+<div class="modal fade" id="txModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" id="txModalTitle">新增收支記錄</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tx-id">
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label small">日期 *</label>
+            <input type="date" id="tx-date" class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label small">類型 *</label>
+            <select id="tx-type" class="form-select form-select-sm" onchange="refreshTxCategoryOptions()">
+              <option value="income">收入</option>
+              <option value="expense">支出</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small">金額 *</label>
+            <input type="number" id="tx-amount" class="form-control form-control-sm" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div class="col-6">
+            <label class="form-label small">分類</label>
+            <select id="tx-category" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small">說明</label>
+            <input type="text" id="tx-desc" class="form-control form-control-sm" placeholder="簡短說明">
+          </div>
+          <div class="col-12">
+            <label class="form-label small">備注</label>
+            <textarea id="tx-note" class="form-control form-control-sm" rows="2" placeholder="詳細備注（選填）"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveTx()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 股票 Modal -->
+<div class="modal fade" id="stockModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" id="stockModalTitle">新增股票交易</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="sk-id">
+        <div class="row g-2">
+          <div class="col-6 col-md-3">
+            <label class="form-label small">日期 *</label>
+            <input type="date" id="sk-modal-date" class="form-control form-control-sm">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">股票代號 *</label>
+            <input type="text" id="sk-modal-ticker" class="form-control form-control-sm" placeholder="2330">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">公司名稱</label>
+            <input type="text" id="sk-modal-company" class="form-control form-control-sm" placeholder="台積電">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">市場</label>
+            <select id="sk-modal-market" class="form-select form-select-sm">
+              <option value="TW">台股 (TW)</option>
+              <option value="US">美股 (US)</option>
+              <option value="HK">港股 (HK)</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">操作 *</label>
+            <select id="sk-modal-action" class="form-select form-select-sm" onchange="updateStockAmountVisibility()">
+              <option value="buy">買入</option>
+              <option value="sell">賣出</option>
+              <option value="dividend">股利</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3" id="sk-shares-group">
+            <label class="form-label small">股數</label>
+            <input type="number" id="sk-modal-shares" class="form-control form-control-sm" placeholder="0"
+                   min="0" step="0.0001" oninput="calcStockAmount()">
+          </div>
+          <div class="col-6 col-md-3" id="sk-price-group">
+            <label class="form-label small">單價</label>
+            <input type="number" id="sk-modal-price" class="form-control form-control-sm" placeholder="0.00"
+                   min="0" step="0.0001" oninput="calcStockAmount()">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">金額 *</label>
+            <input type="number" id="sk-modal-amount" class="form-control form-control-sm" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">手續費</label>
+            <input type="number" id="sk-modal-fee" class="form-control form-control-sm" placeholder="0" min="0" step="0.01">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">交易稅</label>
+            <input type="number" id="sk-modal-tax" class="form-control form-control-sm" placeholder="0" min="0" step="0.01">
+          </div>
+          <div class="col-12">
+            <label class="form-label small">備注</label>
+            <textarea id="sk-modal-note" class="form-control form-control-sm" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveStock()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 分類 Modal -->
+<div class="modal fade" id="catModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" id="catModalTitle">新增分類</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cat-id">
+        <div class="mb-2">
+          <label class="form-label small">類型 *</label>
+          <select id="cat-type" class="form-select form-select-sm" id="catModalType">
+            <option value="expense">支出</option>
+            <option value="income">收入</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">名稱 *</label>
+          <input type="text" id="cat-name" class="form-control form-control-sm" placeholder="分類名稱">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">顏色</label>
+          <div class="d-flex align-items-center gap-2">
+            <input type="color" id="cat-color" class="form-control form-control-color" value="#808080" style="width:48px;height:32px">
+            <span class="small text-muted">點擊選取顏色</span>
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">圖示（Bootstrap Icons class）</label>
+          <input type="text" id="cat-icon" class="form-control form-control-sm" placeholder="bi-tag">
+          <div class="form-text">預覽：<i id="cat-icon-preview" class="bi bi-tag"></i>
+            &nbsp;<a href="https://icons.getbootstrap.com/" target="_blank">圖示列表</a>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveCat()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 預算 Modal -->
+<div class="modal fade" id="budgetModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold">設定預算</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="budget-id">
+        <div class="mb-2">
+          <label class="form-label small">支出分類 *</label>
+          <select id="budget-cat-sel" class="form-select form-select-sm"></select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">預算金額 *</label>
+          <input type="number" id="budget-amount-input" class="form-control form-control-sm" placeholder="0" min="0" step="1">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveBudget()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 刪除確認 Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h6 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle me-1"></i>確認刪除</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-1 small" id="delete-msg">確定要刪除此筆資料嗎？</div>
+      <div class="modal-footer border-0 pt-0">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-danger btn-sm" id="delete-confirm-btn">刪除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════
+     Scripts
+════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+'use strict';
+
+// ── 全域狀態 ──────────────────────────────────────────
+const TOKEN_KEY   = 'finance_token';
+const USERNAME_KEY = 'finance_user';
+let allCategories = [];   // 快取分類清單
+let txPage = 1, txTotal = 0;
+let skPage = 1;
+let chartTrend = null, chartPie = null, chartYearly = null, chartCatPie = null, chartDividend = null;
+const now = new Date();
+
+// ── 工具函式 ──────────────────────────────────────────
+const getToken = ()  => localStorage.getItem(TOKEN_KEY);
+const getUser  = ()  => localStorage.getItem(USERNAME_KEY);
+
+function today() {
+  return now.toISOString().slice(0, 10);
+}
+
+function formatMoney(n) {
+  if (n == null || n === '') return '—';
+  return '$' + Number(n).toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function formatNum(n, dec = 2) {
+  if (n == null) return '—';
+  return Number(n).toLocaleString('zh-TW', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function showLoading(show) {
+  document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+}
+
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `alert alert-${type} position-fixed bottom-0 end-0 m-3 py-2 px-3 shadow small`;
+  el.style.zIndex = 9999;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function confirmDelete(msg, onConfirm) {
+  document.getElementById('delete-msg').textContent = msg;
+  const btn = document.getElementById('delete-confirm-btn');
+  btn.onclick = () => {
+    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+    onConfirm();
+  };
+  new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+// ── API ──────────────────────────────────────────────
+async function apiFetch(url, options = {}) {
+  const token = getToken();
+  options.headers = { ...(options.headers || {}), 'Authorization': `Bearer ${token}` };
+  if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+    options.body = JSON.stringify(options.body);
+    options.headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(url, options);
+  if (res.status === 401) { doLogout(); return null; }
+  return res;
+}
+
+// ── 登入 / 登出 ───────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('d-none');
+
+  if (!username || !password) {
+    errEl.textContent = '請輸入使用者名稱與密碼';
+    errEl.classList.remove('d-none');
+    return;
+  }
+  try {
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      localStorage.setItem(TOKEN_KEY, json.token);
+      localStorage.setItem(USERNAME_KEY, username);
+      enterDashboard();
+    } else {
+      errEl.textContent = json.message || '帳號或密碼錯誤';
+      errEl.classList.remove('d-none');
+    }
+  } catch (e) {
+    errEl.textContent = '連線失敗，請確認伺服器狀態';
+    errEl.classList.remove('d-none');
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USERNAME_KEY);
+  document.getElementById('page-dashboard').style.display = 'none';
+  document.getElementById('page-login').style.display = 'flex';
+}
+
+function enterDashboard() {
+  document.getElementById('page-login').style.display = 'none';
+  document.getElementById('page-dashboard').style.display = 'flex';
+  document.getElementById('nav-username').textContent = getUser();
+  initYearSelectors();
+  loadAllCategories();
+  switchTab('dashboard');
+}
+
+// ── 初始化年份下拉 ──────────────────────────────────────
+function initYearSelectors() {
+  const yr = now.getFullYear();
+  ['dash-year-sel', 'budget-year', 'rpt-year'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    for (let y = yr - 4; y <= yr + 1; y++) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = `${y} 年`;
+      if (y === yr) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+  // 預設月份
+  ['budget-month', 'rpt-month'].forEach(id => {
+    document.getElementById(id).value = now.getMonth() + 1;
+  });
+}
+
+// ── Sidebar ──────────────────────────────────────────
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-backdrop').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('open');
+}
+
+function switchTab(tab) {
+  const tabs = ['dashboard','transactions','stocks','categories','budgets','reports','export'];
+  tabs.forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('d-none', t !== tab);
+    document.getElementById(`nav-${t}`).classList.toggle('active', t === tab);
+  });
+  closeSidebar();
+  if (tab === 'dashboard')    loadDashboard();
+  if (tab === 'transactions') { loadAllCategories(); loadTransactions(1); }
+  if (tab === 'stocks')       { switchStockTab('records'); loadStockRecords(1); }
+  if (tab === 'categories')   { loadAllCategories(); renderCategories(); }
+  if (tab === 'budgets')      loadBudgets();
+  if (tab === 'reports')      loadReports();
+}
+
+// ── 全域分類快取 ─────────────────────────────────────
+async function loadAllCategories() {
+  const res = await apiFetch('/finance/category/');
+  if (!res) return;
+  const json = await res.json();
+  if (json.success) {
+    allCategories = json.data;
+    populateTxFilterCats();
+    populateTxModalCats('expense');
+    populateBudgetCatOptions();
+  }
+}
+
+function populateTxFilterCats() {
+  const sel = document.getElementById('tx-filter-cat');
+  sel.innerHTML = '<option value="">全部分類</option>';
+  allCategories.forEach(c => {
+    sel.innerHTML += `<option value="${c.id}">${c.type === 'income' ? '💚' : '🔴'} ${c.name}</option>`;
+  });
+}
+
+function populateTxModalCats(type) {
+  const sel = document.getElementById('tx-category');
+  sel.innerHTML = '<option value="">不選擇分類</option>';
+  allCategories.filter(c => c.type === type).forEach(c => {
+    sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+  });
+}
+
+function refreshTxCategoryOptions() {
+  populateTxModalCats(document.getElementById('tx-type').value);
+}
+
+function populateBudgetCatOptions() {
+  const sel = document.getElementById('budget-cat-sel');
+  sel.innerHTML = '<option value="">選擇分類</option>';
+  allCategories.filter(c => c.type === 'expense').forEach(c => {
+    sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+  });
+}
+
+// ════════════════════════════════════
+// 儀表板
+// ════════════════════════════════════
+async function loadDashboard() {
+  const yr = now.getFullYear(), mo = now.getMonth() + 1;
+  const res = await apiFetch(`/finance/report/dashboard?year=${yr}&month=${mo}`);
+  if (!res) return;
+  const json = await res.json();
+  if (!json.success) return;
+
+  const d = json.data;
+  const summary = d.summary;
+  document.getElementById('dash-income').textContent  = formatMoney(summary.income);
+  document.getElementById('dash-expense').textContent = formatMoney(summary.expense);
+  document.getElementById('dash-net').textContent     = formatMoney(summary.net);
+  document.getElementById('dash-stocks').textContent  = d.holding_count;
+  document.getElementById('nav-net-amount').textContent = formatMoney(summary.net);
+
+  // 最近交易
+  const tbody = document.getElementById('dash-recent-tbody');
+  tbody.innerHTML = '';
+  if (!d.recent_transactions || d.recent_transactions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">尚無記錄</td></tr>';
+  } else {
+    d.recent_transactions.forEach(r => {
+      const typeBadge = r.type === 'income'
+        ? '<span class="badge badge-income">收入</span>'
+        : '<span class="badge badge-expense">支出</span>';
+      tbody.innerHTML += `<tr>
+        <td>${r.date}</td>
+        <td>${typeBadge}</td>
+        <td class="${r.type === 'income' ? 'text-success' : 'text-danger'} fw-semibold">${formatMoney(r.amount)}</td>
+        <td><span class="color-dot" style="background:${r.category_color || '#ccc'}"></span>${r.category_name || '未分類'}</td>
+        <td class="text-muted">${r.description || ''}</td>
+      </tr>`;
+    });
+  }
+  loadDashboardCharts();
+}
+
+async function loadDashboardCharts() {
+  const year = document.getElementById('dash-year-sel').value;
+  const month = now.getMonth() + 1;
+
+  // 年度趨勢
+  const res1 = await apiFetch(`/finance/report/yearly?year=${year}`);
+  if (res1) {
+    const j1 = await res1.json();
+    if (j1.success) renderTrendChart(j1.data, 'chart-trend');
+  }
+
+  // 本月支出圓餅
+  const firstDay = `${now.getFullYear()}-${String(month).padStart(2,'0')}-01`;
+  const lastDay  = today();
+  const res2 = await apiFetch(`/finance/report/category?date_from=${firstDay}&date_to=${lastDay}&type=expense`);
+  if (res2) {
+    const j2 = await res2.json();
+    if (j2.success) renderPieChart(j2.data, 'chart-pie');
+  }
+}
+
+function renderTrendChart(data, canvasId) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const labels  = data.map(d => `${d.month}月`);
+  const incomes  = data.map(d => d.income);
+  const expenses = data.map(d => d.expense);
+
+  if (chartTrend && canvasId === 'chart-trend')  { chartTrend.destroy(); }
+  if (chartYearly && canvasId === 'chart-yearly') { chartYearly.destroy(); }
+
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '收入', data: incomes,  backgroundColor: 'rgba(46,204,113,.75)', borderRadius: 4 },
+        { label: '支出', data: expenses, backgroundColor: 'rgba(231,76,60,.75)',  borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { x: { grid: { display: false } }, y: { ticks: { callback: v => '$' + v.toLocaleString() } } },
+    },
+  });
+  if (canvasId === 'chart-trend')  chartTrend  = chart;
+  if (canvasId === 'chart-yearly') chartYearly = chart;
+}
+
+function renderPieChart(data, canvasId) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const labels = data.map(d => d.category_name);
+  const values = data.map(d => d.total);
+  const colors = data.map(d => d.color || '#808080');
+
+  if (chartPie    && canvasId === 'chart-pie')     { chartPie.destroy(); }
+  if (chartCatPie && canvasId === 'chart-cat-pie') { chartCatPie.destroy(); }
+
+  const chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, hoverOffset: 8, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${ctx.raw.toLocaleString()}` } },
+      },
+    },
+  });
+  if (canvasId === 'chart-pie')     chartPie    = chart;
+  if (canvasId === 'chart-cat-pie') chartCatPie = chart;
+}
+
+// ════════════════════════════════════
+// 收支記錄
+// ════════════════════════════════════
+const TX_PER_PAGE = 20;
+
+async function loadTransactions(page = 1) {
+  txPage = page;
+  const from   = document.getElementById('tx-filter-from').value;
+  const to     = document.getElementById('tx-filter-to').value;
+  const type   = document.getElementById('tx-filter-type').value;
+  const catId  = document.getElementById('tx-filter-cat').value;
+  const kw     = document.getElementById('tx-filter-kw').value;
+  const offset = (page - 1) * TX_PER_PAGE;
+
+  const params = new URLSearchParams({
+    limit: TX_PER_PAGE, offset,
+    ...(from  && { date_from: from }),
+    ...(to    && { date_to: to }),
+    ...(type  && { type }),
+    ...(catId && { category_id: catId }),
+    ...(kw    && { keyword: kw }),
+  });
+
+  showLoading(true);
+  const res = await apiFetch(`/finance/transaction/?${params}`);
+  showLoading(false);
+  if (!res) return;
+  const json = await res.json();
+  if (!json.success) { showToast(json.message, 'danger'); return; }
+
+  txTotal = json.total;
+  const tbody = document.getElementById('tx-tbody');
+  tbody.innerHTML = '';
+
+  if (json.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">查無資料</td></tr>';
+  } else {
+    json.data.forEach(r => {
+      const typeBadge = r.type === 'income'
+        ? '<span class="badge badge-income">收入</span>'
+        : '<span class="badge badge-expense">支出</span>';
+      tbody.innerHTML += `<tr>
+        <td>${r.date}</td>
+        <td>${typeBadge}</td>
+        <td class="text-end fw-semibold ${r.type === 'income' ? 'text-success' : 'text-danger'}">${formatMoney(r.amount)}</td>
+        <td>
+          <span class="color-dot" style="background:${r.category_color || '#ccc'}"></span>
+          ${r.category_name || '<span class="text-muted">未分類</span>'}
+        </td>
+        <td class="text-muted small">${r.description || ''}</td>
+        <td>
+          <button class="btn btn-xs btn-outline-secondary btn-sm py-0 px-1 me-1" onclick="editTx(${r.id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-xs btn-outline-danger btn-sm py-0 px-1" onclick="deleteTx(${r.id},'${(r.description||'此筆').replace(/'/g,'')}')"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`;
+    });
+  }
+
+  // 分頁控制
+  const totalPages = Math.ceil(txTotal / TX_PER_PAGE);
+  document.getElementById('tx-page-info').textContent = `共 ${txTotal} 筆，第 ${page}/${totalPages || 1} 頁`;
+  document.getElementById('tx-prev-btn').disabled = page <= 1;
+  document.getElementById('tx-next-btn').disabled = page >= totalPages;
+}
+
+function openTxModal(data = null) {
+  document.getElementById('txModalTitle').textContent = data ? '編輯收支記錄' : '新增收支記錄';
+  document.getElementById('tx-id').value      = data ? data.id : '';
+  document.getElementById('tx-date').value    = data ? data.date : today();
+  document.getElementById('tx-type').value    = data ? data.type : 'expense';
+  document.getElementById('tx-amount').value  = data ? data.amount : '';
+  document.getElementById('tx-desc').value    = data ? data.description : '';
+  document.getElementById('tx-note').value    = data ? data.note : '';
+  refreshTxCategoryOptions();
+  if (data) setTimeout(() => document.getElementById('tx-category').value = data.category_id || '', 0);
+  new bootstrap.Modal(document.getElementById('txModal')).show();
+}
+
+async function editTx(id) {
+  const res = await apiFetch(`/finance/transaction/${id}`);
+  if (!res) return;
+  const json = await res.json();
+  if (json.success) openTxModal(json.data);
+}
+
+async function saveTx() {
+  const id = document.getElementById('tx-id').value;
+  const body = {
+    date:        document.getElementById('tx-date').value,
+    type:        document.getElementById('tx-type').value,
+    amount:      parseFloat(document.getElementById('tx-amount').value),
+    category_id: document.getElementById('tx-category').value || null,
+    description: document.getElementById('tx-desc').value,
+    note:        document.getElementById('tx-note').value,
+  };
+  if (!body.date || !body.amount || isNaN(body.amount)) {
+    showToast('請填寫必要欄位（日期、金額）', 'warning'); return;
+  }
+  showLoading(true);
+  const res = await apiFetch(
+    id ? `/finance/transaction/${id}` : '/finance/transaction/',
+    { method: id ? 'PUT' : 'POST', body }
+  );
+  showLoading(false);
+  if (!res) return;
+  const json = await res.json();
+  if (json.success) {
+    bootstrap.Modal.getInstance(document.getElementById('txModal')).hide();
+    showToast(id ? '更新成功' : '新增成功');
+    loadTransactions(txPage);
+  } else {
+    showToast(json.message || '操作失敗', 'danger');
+  }
+}
+
+function deleteTx(id, label) {
+  confirmDelete(`確定刪除「${label}」這筆記錄嗎？`, async () => {
+    const res = await apiFetch(`/finance/transaction/${id}`, { method: 'DELETE' });
+    if (!res) return;
+    const json = await res.json();
+    if (json.success) { showToast('已刪除'); loadTransactions(txPage); }
+    else showToast(json.message, 'danger');
+  });
+}
+
+// ════════════════════════════════════
+// 股票管理
+// ════════════════════════════════════
+const SK_PER_PAGE = 20;
+
+function switchStockTab(tab) {
+  ['records','portfolio','dividend','pnl'].forEach(t => {
+    document.getElementById(`stab-content-${t}`).classList.toggle('d-none', t !== tab);
+    document.getElementById(`stab-${t}`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'portfolio') loadPortfolio();
+  if (tab === 'dividend')  loadDividend();
+  if (tab === 'pnl')       loadPnl();
+}
+
+async function loadStockRecords(page = 1) {
+  skPage = page;
+  const from   = document.getElementById('sk-from').value;
+  const to     = document.getElementById('sk-to').value;
+  const ticker = document.getElementById('sk-ticker').value;
+  const action = document.getElementById('sk-action').value;
+  const offset = (page - 1) * SK_PER_PAGE;
+
+  const params = new URLSearchParams({
+    limit: SK_PER_PAGE, offset,
+    ...(from   && { date_from: from }),
+    ...(to     && { date_to: to }),
+    ...(ticker && { ticker }),
+    ...(action && { action }),
+  });
+
+  showLoading(true);
+  const res = await apiFetch(`/finance/stock/?${params}`);
+  showLoading(false);
+  if (!res) return;
+  const json = await res.json();
+  if (!json.success) { showToast(json.message, 'danger'); return; }
+
+  const tbody = document.getElementById('sk-tbody');
+  tbody.innerHTML = '';
+  const actionLabel = { buy: '買入', sell: '賣出', dividend: '股利' };
+  const actionClass = { buy: 'badge-buy', sell: 'badge-sell', dividend: 'badge-dividend' };
+
+  if (json.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">查無資料</td></tr>';
+  } else {
+    json.data.forEach(r => {
+      tbody.innerHTML += `<tr>
+        <td>${r.date}</td>
+        <td><strong>${r.ticker}</strong> <small class="text-muted">${r.company_name || ''}</small></td>
+        <td><span class="badge bg-secondary">${r.market}</span></td>
+        <td><span class="badge ${actionClass[r.action]}">${actionLabel[r.action]}</span></td>
+        <td class="text-end">${formatNum(r.shares, 0)}</td>
+        <td class="text-end">${formatNum(r.price, 2)}</td>
+        <td class="text-end fw-semibold">${formatMoney(r.amount)}</td>
+        <td class="text-end text-muted small">${r.fee ? formatMoney(r.fee) : '—'}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-1 me-1" onclick="editStock(${r.id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteStock(${r.id},'${r.ticker}')"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`;
+    });
+  }
+  const totalPages = Math.ceil(json.total / SK_PER_PAGE);
+  document.getElementById('sk-page-info').textContent = `共 ${json.total} 筆，第 ${page}/${totalPages || 1} 頁`;
+  document.getElementById('sk-prev-btn').disabled = page <= 1;
+  document.getElementById('sk-next-btn').disabled = page >= totalPages;
+}
+
+async function loadPortfolio() {
+  const res = await apiFetch('/finance/stock/portfolio');
+  if (!res) return;
+  const json = await res.json();
+  const tbody = document.getElementById('portfolio-tbody');
+  tbody.innerHTML = '';
+  if (!json.success || json.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">尚無持倉資料</td></tr>';
+    return;
+  }
+  json.data.forEach(r => {
+    const holding = parseFloat(r.hold_shares);
+    const rowClass = holding <= 0 ? 'text-muted' : '';
+    tbody.innerHTML += `<tr class="${rowClass}">
+      <td><strong>${r.ticker}</strong></td>
+      <td>${r.company_name || '—'}</td>
+      <td>${r.market}</td>
+      <td class="text-end">${formatNum(holding, 0)}</td>
+      <td class="text-end">${formatNum(r.avg_cost, 2)}</td>
+      <td class="text-end fw-semibold">${formatMoney(r.total_cost)}</td>
+    </tr>`;
+  });
+}
+
+async function loadDividend() {
+  const res = await apiFetch('/finance/stock/dividend');
+  if (!res) return;
+  const json = await res.json();
+  const tbody = document.getElementById('dividend-tbody');
+  tbody.innerHTML = '';
+  if (!json.success || json.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">尚無股利資料</td></tr>';
+    if (chartDividend) { chartDividend.destroy(); chartDividend = null; }
+    return;
+  }
+  json.data.forEach(r => {
+    tbody.innerHTML += `<tr>
+      <td><strong>${r.ticker}</strong></td>
+      <td>${r.company_name || '—'}</td>
+      <td class="text-end text-success fw-semibold">${formatMoney(r.total_dividend)}</td>
+      <td class="text-end">${r.dividend_count}</td>
+    </tr>`;
+  });
+  // 圖表
+  const ctx = document.getElementById('chart-dividend').getContext('2d');
+  if (chartDividend) chartDividend.destroy();
+  chartDividend = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: json.data.map(d => d.ticker),
+      datasets: [{ label: '股利金額', data: json.data.map(d => d.total_dividend),
+        backgroundColor: 'rgba(46,204,113,.75)', borderRadius: 4 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { ticks: { callback: v => '$' + v.toLocaleString() } } },
+    },
+  });
+}
+
+async function loadPnl() {
+  const res = await apiFetch('/finance/stock/pnl');
+  if (!res) return;
+  const json = await res.json();
+  const tbody = document.getElementById('pnl-tbody');
+  tbody.innerHTML = '';
+  if (!json.success || json.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">尚無損益資料</td></tr>';
+    return;
+  }
+  json.data.forEach(r => {
+    const pnl = parseFloat(r.realized_pnl);
+    const pnlClass = pnl > 0 ? 'text-success' : pnl < 0 ? 'text-danger' : '';
+    const rateStr = pnl >= 0 ? `+${r.pnl_rate}%` : `${r.pnl_rate}%`;
+    tbody.innerHTML += `<tr>
+      <td><strong>${r.ticker}</strong></td>
+      <td class="text-end">${formatMoney(r.sell_amount)}</td>
+      <td class="text-end fw-semibold ${pnlClass}">${pnl >= 0 ? '+' : ''}${formatMoney(pnl)}</td>
+      <td class="text-end ${pnlClass}">${rateStr}</td>
+    </tr>`;
+  });
+}
+
+function openStockModal(data = null) {
+  document.getElementById('stockModalTitle').textContent = data ? '編輯股票交易' : '新增股票交易';
+  document.getElementById('sk-id').value            = data ? data.id : '';
+  document.getElementById('sk-modal-date').value    = data ? data.date : today();
+  document.getElementById('sk-modal-ticker').value  = data ? data.ticker : '';
+  document.getElementById('sk-modal-company').value = data ? (data.company_name || '') : '';
+  document.getElementById('sk-modal-market').value  = data ? data.market : 'TW';
+  document.getElementById('sk-modal-action').value  = data ? data.action : 'buy';
+  document.getElementById('sk-modal-shares').value  = data ? (data.shares || '') : '';
+  document.getElementById('sk-modal-price').value   = data ? (data.price || '') : '';
+  document.getElementById('sk-modal-amount').value  = data ? data.amount : '';
+  document.getElementById('sk-modal-fee').value     = data ? (data.fee || '') : '';
+  document.getElementById('sk-modal-tax').value     = data ? (data.tax || '') : '';
+  document.getElementById('sk-modal-note').value    = data ? (data.note || '') : '';
+  updateStockAmountVisibility();
+  new bootstrap.Modal(document.getElementById('stockModal')).show();
+}
+
+function updateStockAmountVisibility() {
+  const isDividend = document.getElementById('sk-modal-action').value === 'dividend';
+  document.getElementById('sk-shares-group').classList.toggle('d-none', isDividend);
+  document.getElementById('sk-price-group').classList.toggle('d-none', isDividend);
+}
+
+function calcStockAmount() {
+  const shares = parseFloat(document.getElementById('sk-modal-shares').value) || 0;
+  const price  = parseFloat(document.getElementById('sk-modal-price').value)  || 0;
+  if (shares > 0 && price > 0) {
+    document.getElementById('sk-modal-amount').value = (shares * price).toFixed(2);
+  }
+}
+
+async function editStock(id) {
+  const res = await apiFetch(`/finance/stock/${id}`);
+  if (!res) return;
+  const json = await res.json();
+  if (json.success) openStockModal(json.data);
+}
+
+async function saveStock() {
+  const id = document.getElementById('sk-id').value;
+  const body = {
+    date:         document.getElementById('sk-modal-date').value,
+    ticker:       document.getElementById('sk-modal-ticker').value.trim().toUpperCase(),
+    company_name: document.getElementById('sk-modal-company').value.trim(),
+    market:       document.getElementById('sk-modal-market').value,
+    action:       document.getElementById('sk-modal-action').value,
+    shares:       parseFloat(document.getElementById('sk-modal-shares').value) || 0,
+    price:        parseFloat(document.getElementById('sk-modal-price').value)  || 0,
+    amount:       parseFloat(document.getElementById('sk-modal-amount').value),
+    fee:          parseFloat(document.getElementById('sk-modal-fee').value)    || 0,
+    tax:          parseFloat(document.getElementById('sk-modal-tax').value)    || 0,
+    note:         document.getElementById('sk-modal-note').value,
+  };
+  if (!body.date || !body.ticker || isNaN(body.amount)) {
+    showToast('請填寫必要欄位（日期、代號、金額）', 'warning'); return;
+  }
+  showLoading(true);
+  const res = await apiFetch(
+    id ? `/finance/stock/${id}` : '/finance/stock/',
+    { method: id ? 'PUT' : 'POST', body }
+  );
+  showLoading(false);
+  if (!res) return;
+  const json = await res.json();
+  if (json.success) {
+    bootstrap.Modal.getInstance(document.getElementById('stockModal')).hide();
+    showToast(id ? '更新成功' : '新增成功');
+    loadStockRecords(skPage);
+  } else {
+    showToast(json.message || '操作失敗', 'danger');
+  }
+}
+
+function deleteStock(id, ticker) {
+  confirmDelete(`確定刪除 ${ticker} 的交易記錄嗎？`, async () => {
+    const res = await apiFetch(`/finance/stock/${id}`, { method: 'DELETE' });
+    if (!res) return;
+    const json = await res.json();
+    if (json.success) { showToast('已刪除'); loadStockRecords(skPage); }
+    else showToast(json.message, 'danger');
+  });
+}
+
+// ════════════════════════════════════
+// 分類管理
+// ════════════════════════════════════
+function renderCategories() {
+  const expEl = document.getElementById('cat-expense-list');
+  const incEl = document.getElementById('cat-income-list');
+  expEl.innerHTML = ''; incEl.innerHTML = '';
+  const expense = allCategories.filter(c => c.type === 'expense');
+  const income  = allCategories.filter(c => c.type === 'income');
+
+  const renderItem = (c) => `
+    <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+      <div class="d-flex align-items-center gap-2">
+        <span class="color-dot" style="background:${c.color};width:14px;height:14px;border-radius:50%;"></span>
+        <i class="bi ${c.icon} small"></i>
+        <span class="small">${c.name}</span>
+      </div>
+      <div class="d-flex gap-1">
+        <button class="btn btn-xs btn-outline-secondary btn-sm py-0 px-1" onclick="editCat(${c.id})">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-xs btn-outline-danger btn-sm py-0 px-1" onclick="deleteCat(${c.id},'${c.name}')">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>`;
+
+  if (expense.length === 0) expEl.innerHTML = '<p class="text-muted small text-center">尚無支出分類</p>';
+  else expense.forEach(c => expEl.innerHTML += renderItem(c));
+  if (income.length === 0)  incEl.innerHTML = '<p class="text-muted small text-center">尚無收入分類</p>';
+  else income.forEach(c => incEl.innerHTML += renderItem(c));
+}
+
+function openCatModal(data = null) {
+  document.getElementById('catModalTitle').textContent = data ? '編輯分類' : '新增分類';
+  document.getElementById('cat-id').value    = data ? data.id : '';
+  document.getElementById('cat-type').value  = data ? data.type : 'expense';
+  document.getElementById('cat-name').value  = data ? data.name : '';
+  document.getElementById('cat-color').value = data ? data.color : '#808080';
+  document.getElementById('cat-icon').value  = data ? data.icon : 'bi-tag';
+  updateIconPreview();
+  if (data) document.getElementById('cat-type').disabled = true;
+  else      document.getElementById('cat-type').disabled = false;
+  new bootstrap.Modal(document.getElementById('catModal')).show();
+}
+
+function updateIconPreview() {
+  const icon = document.getElementById('cat-icon').value.trim();
+  document.getElementById('cat-icon-preview').className = `bi ${icon}`;
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cat-icon').addEventListener('input', updateIconPreview);
+});
+
+async function editCat(id) {
+  const cat = allCategories.find(c => c.id === id);
+  if (cat) openCatModal(cat);
+}
+
+async function saveCat() {
+  const id    = document.getElementById('cat-id').value;
+  const name  = document.getElementById('cat-name').value.trim();
+  const type  = document.getElementById('cat-type').value;
+  const color = document.getElementById('cat-color').value;
+  const icon  = document.getElementById('cat-icon').value.trim() || 'bi-tag';
+  if (!name) { showToast('請填寫分類名稱', 'warning'); return; }
+
+  const body = id ? { name, color, icon } : { name, type, color, icon };
+  showLoading(true);
+  const res = await apiFetch(
+    id ? `/finance/category/${id}` : '/finance/category/',
+    { method: id ? 'PUT' : 'POST', body }
+  );
+  showLoading(false);
+  if (!res) return;
+  const json = await res.json();
+  if (json.success) {
+    bootstrap.Modal.getInstance(document.getElementById('catModal')).hide();
+    showToast(id ? '更新成功' : '新增成功');
+    await loadAllCategories();
+    renderCategories();
+  } else {
+    showToast(json.message || '操作失敗', 'danger');
+  }
+}
+
+function deleteCat(id, name) {
+  confirmDelete(`確定刪除分類「${name}」嗎？相關記錄的分類將變為未分類。`, async () => {
+    const res = await apiFetch(`/finance/category/${id}`, { method: 'DELETE' });
+    if (!res) return;
+    const json = await res.json();
+    if (json.success) {
+      showToast('已刪除');
+      await loadAllCategories();
+      renderCategories();
+    } else showToast(json.message, 'danger');
+  });
+}
+
+// ════════════════════════════════════
+// 預算管理
+// ════════════════════════════════════
+async function loadBudgets() {
+  const year  = document.getElementById('budget-year').value;
+  const month = document.getElementById('budget-month').value;
+  showLoading(true);
+  const res = await apiFetch(`/finance/budget/status?year=${year}&month=${month}`);
+  showLoading(false);
+  if (!res) return;
+  const json = await res.json();
+  const tbody = document.getElementById('budget-tbody');
+  tbody.innerHTML = '';
+  if (!json.success || json.data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">
+      ${year} 年 ${month} 月尚未設定任何預算
+    </td></tr>`;
+    return;
+  }
+  json.data.forEach(r => {
+    const rate = parseFloat(r.usage_rate);
+    const barClass = rate > 100 ? 'bg-danger' : rate >= 80 ? 'bg-warning' : 'bg-success';
+    const remaining = parseFloat(r.remaining);
+    const remClass = remaining < 0 ? 'text-danger' : '';
+    tbody.innerHTML += `<tr>
+      <td>
+        <span class="color-dot" style="background:${r.category_color}"></span>
+        <i class="bi ${r.category_icon} small me-1"></i>${r.category_name}
+      </td>
+      <td class="text-end">${formatMoney(r.budget_amount)}</td>
+      <td class="text-end text-danger">${formatMoney(r.actual_expense)}</td>
+      <td class="text-end ${remClass}">${formatMoney(remaining)}</td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          <div class="progress flex-fill" style="height:8px">
+            <div class="progress-bar ${barClass}" style="width:${Math.min(rate,100)}%"></div>
+          </div>
+          <small class="${barClass.replace('bg-','text-')}">${rate}%</small>
+        </div>
+      </td>
+      <td>
+        <button class="btn btn-sm btn-outline-danger py-0 px-1"
+                onclick="deleteBudget(${r.id},'${r.category_name}')">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>`;
+  });
+}
+
+function openBudgetModal() {
+  document.getElementById('budget-id').value = '';
+  document.getElementById('budget-cat-sel').value = '';
+  document.getElementById('budget-amount-input').value = '';
+  new bootstrap.Modal(document.getElementById('budgetModal')).show();
+}
+
+async function saveBudget() {
+  const catId  = document.getElementById('budget-cat-sel').value;
+  const amount = parseFloat(document.getElementById('budget-amount-input').value);
+  const year   = document.getElementById('budget-year').value;
+  const month  = document.getElementById('budget-month').value;
+  if (!catId || isNaN(amount) || amount <= 0) {
+    showToast('請選擇分類並填寫正確的金額', 'warning'); return;
+  }
+  showLoading(true);
+  const res = await apiFetch('/finance/budget/', {
+    method: 'POST',
+    body: { category_id: parseInt(catId), year: parseInt(year), month: parseInt(month), amount },
+  });
+  showLoading(false);
+  if (!res) return;
+  const json = await res.json();
+  if (json.success) {
+    bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
+    showToast('預算已儲存');
+    loadBudgets();
+  } else showToast(json.message || '儲存失敗', 'danger');
+}
+
+function deleteBudget(id, name) {
+  confirmDelete(`確定刪除「${name}」的預算設定嗎？`, async () => {
+    const res = await apiFetch(`/finance/budget/${id}`, { method: 'DELETE' });
+    if (!res) return;
+    const json = await res.json();
+    if (json.success) { showToast('已刪除'); loadBudgets(); }
+    else showToast(json.message, 'danger');
+  });
+}
+
+// ════════════════════════════════════
+// 報表分析
+// ════════════════════════════════════
+async function loadReports() {
+  const year  = document.getElementById('rpt-year').value;
+  const month = document.getElementById('rpt-month').value;
+
+  // 年度趨勢
+  const res1 = await apiFetch(`/finance/report/yearly?year=${year}`);
+  if (res1) {
+    const j1 = await res1.json();
+    if (j1.success) {
+      renderTrendChart(j1.data, 'chart-yearly');
+      // 表格
+      const tbody = document.getElementById('rpt-tbody');
+      tbody.innerHTML = '';
+      j1.data.forEach(r => {
+        const net = r.income - r.expense;
+        tbody.innerHTML += `<tr>
+          <td>${r.month} 月</td>
+          <td class="text-end text-success">${formatMoney(r.income)}</td>
+          <td class="text-end text-danger">${formatMoney(r.expense)}</td>
+          <td class="text-end fw-semibold ${net >= 0 ? 'text-primary' : 'text-danger'}">${formatMoney(net)}</td>
+        </tr>`;
+      });
+    }
+  }
+
+  // 月份分類圓餅
+  const firstDay = `${year}-${String(month).padStart(2,'0')}-01`;
+  const lastDay  = `${year}-${String(month).padStart(2,'0')}-31`;
+  const res2 = await apiFetch(`/finance/report/category?date_from=${firstDay}&date_to=${lastDay}&type=expense`);
+  if (res2) {
+    const j2 = await res2.json();
+    if (j2.success) renderPieChart(j2.data, 'chart-cat-pie');
+  }
+}
+
+// ════════════════════════════════════
+// 資料匯出
+// ════════════════════════════════════
+function doExport(type, fmt) {
+  const fromId = type === 'transactions' ? 'exp-tx-from' : 'exp-sk-from';
+  const toId   = type === 'transactions' ? 'exp-tx-to'   : 'exp-sk-to';
+  const from = document.getElementById(fromId).value;
+  const to   = document.getElementById(toId).value;
+  const params = new URLSearchParams({
+    type, format: fmt,
+    ...(from && { date_from: from }),
+    ...(to   && { date_to: to }),
+  });
+  const token = getToken();
+  // 直接開新分頁下載（帶 token 需用 fetch + blob）
+  showLoading(true);
+  fetch(`/finance/report/export?${params}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  .then(res => {
+    if (!res.ok) { showLoading(false); showToast('匯出失敗', 'danger'); return; }
+    return res.blob().then(blob => {
+      showLoading(false);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const cd = res.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="?(.+)"?/);
+      a.download = match ? match[1] : `${type}.${fmt === 'excel' ? 'xlsx' : 'csv'}`;
+      a.href = url; a.click();
+      URL.revokeObjectURL(url);
+    });
+  })
+  .catch(() => { showLoading(false); showToast('下載失敗', 'danger'); });
+}
+
+// ════════════════════════════════════
+// 初始化
+// ════════════════════════════════════
+(function init() {
+  // 設定預設匯出日期
+  const firstDay = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+  document.getElementById('exp-tx-from').value = firstDay;
+  document.getElementById('exp-tx-to').value   = today();
+  document.getElementById('exp-sk-from').value = firstDay;
+  document.getElementById('exp-sk-to').value   = today();
+
+  // 自動登入
+  if (getToken()) {
+    enterDashboard();
+  }
+})();
+</script>
+</body>
+</html>
