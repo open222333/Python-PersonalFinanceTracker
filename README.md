@@ -59,10 +59,16 @@ Python-PersonalFinanceTracker/
 │   ├── flask.json.default          # SECRET_KEY 範本
 │   └── nginx/
 │       ├── nginx.conf              # nginx 主設定（worker、gzip、log 格式）
-│       └── conf.d/
-│           ├── default.conf.default                    # HTTP 範本（複製為 default.conf 使用）
-│           ├── default.conf.https-letsencrypt.default  # Let's Encrypt HTTPS 範本
-│           └── default.conf.cloudflare.default         # Cloudflare Origin CA HTTPS 範本
+│       ├── certs/cloudflare/       # Cloudflare 憑證放置目錄（預設空，http 模式不需要）
+│       ├── templates/
+│       │   ├── http/
+│       │   │   └── default.conf.template               # HTTP 模式 template
+│       │   └── cloudflare/
+│       │       └── default.conf.template               # Cloudflare SSL 模式 template
+│       └── conf.d/                 # 舊版靜態設定檔（參考用，已由 templates 取代）
+│           ├── default.conf.default
+│           ├── default.conf.https-letsencrypt.default
+│           └── default.conf.cloudflare.default
 │
 └── db/
     └── finance_schema.sql          # 理財系統資料表建立 SQL
@@ -180,65 +186,72 @@ docker compose up -d --build
 
 ### 部署自訂域名（含 HTTPS）
 
-#### 1. DNS 設定
+nginx 模式透過 `.env` 的 `NGINX_MODE` 控制，**不需要手動換設定檔**，只要改 `.env` 再重啟即可。
 
-在域名商後台新增 A Record，指向伺服器 IP：
+| `NGINX_MODE` | 說明 | 適用情境 |
+|---|---|---|
+| `http` | 純 HTTP（預設） | 本機、無域名、內網 |
+| `cloudflare` | Cloudflare Origin CA SSL | 域名走 Cloudflare 代理 |
+
+---
+
+#### 模式一：HTTP（預設，無需額外設定）
+
+`.env` 保持預設即可：
+
+```env
+NGINX_MODE=http
+DOMAIN=_
+```
+
+---
+
+#### 模式二：Cloudflare SSL
+
+##### 1. DNS 設定
+
+Cloudflare Dashboard → 你的域名 → DNS → 新增 A Record：
 
 ```
-類型   名稱   值
-A      @      你的伺服器 IP
+類型   名稱   值              Proxy
+A      @      伺服器 IP       ☁ Proxied
 ```
 
-#### 2. 伺服器開放 Port
+##### 2. 伺服器開放 Port
 
 ```bash
 ufw allow 80 && ufw allow 443
 ```
 
-#### 3. 申請 Let's Encrypt SSL 憑證
+##### 3. 建立 Cloudflare Origin CA 憑證
+
+Cloudflare Dashboard → **SSL/TLS → Origin Server → Create Certificate**
+
+- 選 RSA，有效期 15 年
+- 複製 **Origin Certificate** 和 **Private Key**
 
 ```bash
-apt install certbot
-docker compose stop nginx
-certbot certonly --standalone -d your.domain.com
+mkdir -p /etc/ssl/cloudflare
+nano /etc/ssl/cloudflare/origin.pem   # 貼上 Origin Certificate
+nano /etc/ssl/cloudflare/origin.key   # 貼上 Private Key
+chmod 600 /etc/ssl/cloudflare/origin.key
 ```
 
-#### 4. 更新 nginx 設定
+##### 4. 更新 `.env`
 
-將 HTTPS 範本複製為生效設定，並替換 **4 處** `your.domain.com`：
-
-```bash
-# Let's Encrypt
-cp conf/nginx/conf.d/default.conf.https-letsencrypt.default conf/nginx/conf.d/default.conf
-# 編輯 default.conf，將所有 your.domain.com 改為實際域名
+```env
+NGINX_MODE=cloudflare
+DOMAIN=your.domain.com
+CF_CERT_DIR=/etc/ssl/cloudflare
 ```
 
-> 若使用 **Cloudflare Full (Strict)**（Cloudflare Origin CA），改用：
-> ```bash
-> cp conf/nginx/conf.d/default.conf.cloudflare.default conf/nginx/conf.d/default.conf
-> ```
-
-在 `docker-compose.yml` nginx ports 加入 `"443:443"` 並掛載憑證：
-
-```yaml
-ports:
-  - "80:80"
-  - "443:443"
-volumes:
-  - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  - ./conf/nginx/conf.d:/etc/nginx/conf.d:ro
-  - /etc/letsencrypt:/etc/letsencrypt:ro
-  - /var/www/certbot:/var/www/certbot:ro
-```
-
-#### 5. 啟動並設定自動續約
+##### 5. 啟動
 
 ```bash
 docker compose up -d
-
-# crontab -e 加入（替換專案路徑）
-30 2 * * * certbot renew --quiet && docker compose -f /path/to/project/docker-compose.yml restart nginx
 ```
+
+> Cloudflare SSL/TLS 模式記得設為 **Full (Strict)**，確保 Cloudflare ↔ 伺服器端對端加密。
 
 ### 常用指令
 

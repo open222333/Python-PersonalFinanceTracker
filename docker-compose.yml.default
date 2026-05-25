@@ -4,9 +4,18 @@ services:
     hostname: flask-api-nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./conf/nginx/conf.d:/etc/nginx/conf.d:ro
+      # 只掛選定模式的子目錄，nginx 啟動時自動 envsubst → conf.d/
+      # NGINX_MODE=http        → conf/nginx/templates/http/
+      # NGINX_MODE=cloudflare  → conf/nginx/templates/cloudflare/
+      - ./conf/nginx/templates/${NGINX_MODE:-http}:/etc/nginx/templates:ro
+      # Cloudflare 憑證目錄（http 模式掛空目錄，不影響啟動）
+      - ${CF_CERT_DIR:-./conf/nginx/certs/cloudflare}:/etc/ssl/cloudflare:ro
+    environment:
+      DOMAIN: ${DOMAIN:-_}
+      NGINX_ENVSUBST_FILTER: DOMAIN
     depends_on:
       - app
     restart: unless-stopped
