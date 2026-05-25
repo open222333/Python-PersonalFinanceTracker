@@ -1,11 +1,30 @@
+# ============================================================
+# Let's Encrypt SSL 範本（HTTPS + 免費憑證）
+# 使用情境：伺服器直接暴露於網際網路（不經 Cloudflare Proxy），使用 Let's Encrypt 憑證
+#
+# 啟用方式 (.env)：
+#   NGINX_MODE=https-letsencrypt
+#   DOMAIN=your.domain.com
+#
+# 前置作業：
+#   1. 確認 DNS A 記錄已指向本伺服器
+#   2. docker-compose.yml 中新增憑證 volume：
+#        - /etc/letsencrypt:/etc/letsencrypt:ro
+#        - /var/www/certbot:/var/www/certbot
+#   3. 申請憑證：
+#        certbot certonly --webroot -w /var/www/certbot -d your.domain.com
+#   4. 將下方 ssl_certificate 路徑中的 your.domain.com 替換為實際域名
+#
+# 注意：ssl_certificate 路徑含域名部分需手動修改，無法透過 ${DOMAIN} 自動替換
+# ============================================================
 upstream flask_app {
     server app:5000;
 }
 
-# HTTP → HTTPS 強制導向
+# HTTP → HTTPS 強制導向（同時提供 certbot webroot 驗證）
 server {
     listen      80;
-    server_name your.domain.com;    # ← 替換為你的域名
+    server_name ${DOMAIN};
 
     # Let's Encrypt certbot webroot 驗證路徑（自動續約用）
     location /.well-known/acme-challenge/ {
@@ -20,10 +39,11 @@ server {
 # HTTPS
 server {
     listen      443 ssl;
-    server_name your.domain.com;    # ← 替換為你的域名
+    server_name ${DOMAIN};
 
-    ssl_certificate     /etc/letsencrypt/live/your.domain.com/fullchain.pem;  # ← 替換域名
-    ssl_certificate_key /etc/letsencrypt/live/your.domain.com/privkey.pem;    # ← 替換域名
+    # ← 申請憑證後，將路徑中的 your.domain.com 替換為實際域名
+    ssl_certificate     /etc/letsencrypt/live/your.domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your.domain.com/privkey.pem;
 
     ssl_protocols             TLSv1.2 TLSv1.3;
     ssl_ciphers               HIGH:!aNULL:!MD5;

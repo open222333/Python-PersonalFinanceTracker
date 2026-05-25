@@ -1,15 +1,32 @@
+# ============================================================
+# Cloudflare SSL (Origin CA) 範本
+# 使用情境：域名透過 Cloudflare 代理，SSL 模式設為 Full 或 Full (Strict)
+#
+# 啟用方式 (.env)：
+#   NGINX_MODE=cloudflare
+#   DOMAIN=your.domain.com
+#   CF_CERT_DIR=/path/to/certs   ← 目錄內需含 origin.pem + origin.key
+#
+# 前置作業：
+#   1. Cloudflare Dashboard → SSL/TLS → Origin Server → Create Certificate
+#   2. 將 .pem / .key 放至 CF_CERT_DIR 指定的目錄
+#   3. SSL/TLS 模式改為「Full (Strict)」以確保端到端加密
+# ============================================================
 upstream flask_app {
     server app:5000;
 }
 
 # HTTP → HTTPS 強制導向
+# （Cloudflare 啟用「Always Use HTTPS」後此段可省略，但保留以備直連伺服器時用）
 server {
     listen      80;
     server_name ${DOMAIN};
-    return 301 https://$host$request_uri;
+    location / {
+        return 301 https://$host$request_uri;
+    }
 }
 
-# HTTPS（Cloudflare Origin CA）
+# HTTPS（Cloudflare Origin CA 憑證）
 server {
     listen      443 ssl;
     server_name ${DOMAIN};
@@ -23,6 +40,7 @@ server {
     ssl_session_cache         shared:SSL:10m;
     ssl_session_timeout       1d;
 
+    # HSTS（可選，強制瀏覽器永遠使用 HTTPS）
     # add_header Strict-Transport-Security "max-age=63072000" always;
 
     client_max_body_size 20M;
@@ -30,7 +48,12 @@ server {
     access_log  /var/log/nginx/access.log;
     error_log   /var/log/nginx/error.log;
 
-    # 還原 Cloudflare 真實訪客 IP
+    # --------------------------------------------------------
+    # 還原訪客真實 IP（Cloudflare 會用自己的 IP 連進來）
+    # 讓 $remote_addr 回到真實訪客 IP
+    # 清單來源：https://www.cloudflare.com/ips/
+    # --------------------------------------------------------
+    # IPv4
     set_real_ip_from  173.245.48.0/20;
     set_real_ip_from  103.21.244.0/22;
     set_real_ip_from  103.22.200.0/22;
@@ -46,6 +69,7 @@ server {
     set_real_ip_from  104.24.0.0/14;
     set_real_ip_from  172.64.0.0/13;
     set_real_ip_from  131.0.72.0/22;
+    # IPv6
     set_real_ip_from  2400:cb00::/32;
     set_real_ip_from  2606:4700::/32;
     set_real_ip_from  2803:f800::/32;
@@ -53,6 +77,7 @@ server {
     set_real_ip_from  2405:8100::/32;
     set_real_ip_from  2a06:98c0::/29;
     set_real_ip_from  2c0f:f248::/32;
+    # 使用 CF-Connecting-IP header 取得真實 IP
     real_ip_header    CF-Connecting-IP;
 
     location / {
