@@ -22,7 +22,9 @@ services:
     restart: unless-stopped
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     image: python-flask-api:latest
     hostname: flask-api
     env_file: .env
@@ -42,7 +44,7 @@ services:
     image: mongo:7
     hostname: flask-api-mongo
     volumes:
-      - mongo_data:/data/db
+      - ./docker/database/mongo:/data/db
     restart: unless-stopped
 
   mysql:
@@ -54,7 +56,7 @@ services:
       MYSQL_USER: flask_user
       MYSQL_PASSWORD: flask_password
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./docker/database/mysql:/var/lib/mysql
     restart: unless-stopped
 
   redis:
@@ -62,10 +64,5 @@ services:
     hostname: flask-api-redis
     command: redis-server --requirepass redis_password
     volumes:
-      - redis_data:/data
+      - ./docker/database/redis:/data
     restart: unless-stopped
-
-volumes:
-  mongo_data:
-  mysql_data:
-  redis_data:
