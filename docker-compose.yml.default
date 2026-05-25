@@ -57,6 +57,7 @@ services:
       MYSQL_PASSWORD: flask_password
     volumes:
       - ./docker/database/mysql:/var/lib/mysql
+      - ./docker/init/mysql:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
 
   redis:
