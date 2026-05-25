@@ -131,3 +131,7 @@ dmypy.json
 
 # Nginx conf（實際設定不納入版控，請從 *.default 複製）
 conf/nginx/conf.d/*.conf
+
+# 資料庫資料目錄（bind mount，不納入版控，保留 .gitkeep 佔位）
+docker/database/**
+!docker/database/**/.gitkeep
