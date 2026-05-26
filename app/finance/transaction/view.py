@@ -7,7 +7,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from src.models.finance import Transaction
-from src.permissions import require_role
+from src.permissions import require_role, get_current_user_id
 
 app_finance_transaction = Blueprint('app_finance_transaction', __name__)
 
@@ -28,7 +28,7 @@ def _serialize_rows(rows: list) -> list:
 
 @app_finance_transaction.route('/', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def list_transactions():
     """
     查詢收支記錄
@@ -49,6 +49,7 @@ def list_transactions():
         limit    = max(1, min(200, int(request.args.get('per_page', 20))))
         offset   = (page - 1) * limit
 
+    user_id = get_current_user_id()
     try:
         rows, total = Transaction.find(
             date_from=date_from,
@@ -58,6 +59,7 @@ def list_transactions():
             keyword=keyword,
             limit=limit,
             offset=offset,
+            user_id=user_id,
         )
         return jsonify({
             'success':  True,
@@ -72,11 +74,12 @@ def list_transactions():
 
 @app_finance_transaction.route('/<int:id>', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def get_transaction(id):
     """查詢單筆收支記錄"""
+    user_id = get_current_user_id()
     try:
-        row = Transaction.find_by_id(id)
+        row = Transaction.find_by_id(id, user_id)
         if not row:
             return jsonify({'success': False, 'message': '記錄不存在'}), 404
         return jsonify({'success': True, 'data': _serialize_rows([row])[0]})
@@ -86,7 +89,7 @@ def get_transaction(id):
 
 @app_finance_transaction.route('/', methods=['POST'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def create_transaction():
     """新增收支記錄"""
     data = request.get_json()
@@ -107,6 +110,7 @@ def create_transaction():
     if amount is None:
         return jsonify({'success': False, 'message': 'amount 不得為空'}), 400
 
+    user_id = get_current_user_id()
     try:
         new_id = Transaction.create(
             date=date,
@@ -115,6 +119,7 @@ def create_transaction():
             category_id=int(category_id) if category_id else None,
             description=description,
             note=note,
+            user_id=user_id,
         )
         return jsonify({'success': True, 'id': new_id}), 201
     except Exception as e:
@@ -123,7 +128,7 @@ def create_transaction():
 
 @app_finance_transaction.route('/<int:id>', methods=['PUT'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def update_transaction(id):
     """更新收支記錄"""
     data = request.get_json()
@@ -138,8 +143,9 @@ def update_transaction(id):
     if 'description' in data: kwargs['description'] = data['description']
     if 'note'        in data: kwargs['note']        = data['note']
 
+    user_id = get_current_user_id()
     try:
-        if not Transaction.update(id, **kwargs):
+        if not Transaction.update(id, user_id, **kwargs):
             return jsonify({'success': False, 'message': '記錄不存在或無變更'}), 404
         return jsonify({'success': True})
     except Exception as e:
@@ -148,11 +154,12 @@ def update_transaction(id):
 
 @app_finance_transaction.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def delete_transaction(id):
     """刪除收支記錄"""
+    user_id = get_current_user_id()
     try:
-        if not Transaction.delete(id):
+        if not Transaction.delete(id, user_id):
             return jsonify({'success': False, 'message': '記錄不存在'}), 404
         return jsonify({'success': True})
     except Exception as e:
@@ -161,7 +168,7 @@ def delete_transaction(id):
 
 @app_finance_transaction.route('/summary', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def monthly_summary():
     """當月收支概況"""
     now   = datetime.now()

@@ -53,3 +53,16 @@ REDIS_HOST=localhost
 
 ; Redis DB 編號 預設 0
 ; REDIS_DB=0
+
+[YUANTA]
+; 元大證券 API 帳號（券商帳號）
+; YUANTA_ACCOUNT=
+
+; 元大證券 API 密碼
+; YUANTA_PASSWORD=
+
+; 身分證字號（部分 API 版本需要）
+; YUANTA_ID_NUMBER=
+
+; 元大 API 基礎 URL（留空使用預設 https://api.yuantaapi.com）
+; YUANTA_API_URL=

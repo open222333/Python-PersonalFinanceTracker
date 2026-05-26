@@ -1,15 +1,24 @@
-from pymysql import connect
+"""
+MySQL 連線池模組（使用 DBUtils.PooledDB 取代已移除的 pymysql.pool）
+PyMySQL >= 1.0 已刪除 pymysql.pool，改用 DBUtils 提供連線池功能。
+"""
+import pymysql
 from pymysql.cursors import DictCursor
-from pymysql.pool import ConnectionPool
+from dbutils.pooled_db import PooledDB
 from src import MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB
 
-_pool = None
+_pool: PooledDB = None
 
 
-def get_pool() -> ConnectionPool:
+def get_pool() -> PooledDB:
     global _pool
     if _pool is None:
-        _pool = ConnectionPool(
+        _pool = PooledDB(
+            creator=pymysql,
+            maxconnections=10,
+            mincached=1,
+            maxcached=5,
+            blocking=True,
             host=MYSQL_HOST,
             port=MYSQL_PORT,
             user=MYSQL_USER,
@@ -18,13 +27,12 @@ def get_pool() -> ConnectionPool:
             charset='utf8mb4',
             cursorclass=DictCursor,
             autocommit=True,
-            maxconnections=10
         )
     return _pool
 
 
 def get_conn():
-    """取得 MySQL 連線，使用完畢後需手動 close()"""
+    """從連線池取得連線，使用完畢後呼叫 close() 歸還（不是真的關閉）"""
     return get_pool().connection()
 
 

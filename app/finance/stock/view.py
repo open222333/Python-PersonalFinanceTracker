@@ -6,7 +6,7 @@ url_prefix: /finance/stock
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from src.models.finance import Stock
-from src.permissions import require_role
+from src.permissions import require_role, get_current_user_id
 
 app_finance_stock = Blueprint('app_finance_stock', __name__)
 
@@ -27,7 +27,7 @@ def _serialize_rows(rows: list) -> list:
 
 @app_finance_stock.route('/', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def list_stocks():
     """查詢股票交易記錄（支援 limit/offset 及 page/per_page）"""
     date_from = request.args.get('date_from')
@@ -42,6 +42,7 @@ def list_stocks():
         limit   = max(1, min(200, int(request.args.get('per_page', 20))))
         offset  = (page - 1) * limit
 
+    user_id = get_current_user_id()
     try:
         rows, total = Stock.find(
             date_from=date_from,
@@ -50,6 +51,7 @@ def list_stocks():
             action=action,
             limit=limit,
             offset=offset,
+            user_id=user_id,
         )
         return jsonify({
             'success':  True,
@@ -64,11 +66,12 @@ def list_stocks():
 
 @app_finance_stock.route('/<int:id>', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def get_stock(id):
     """查詢單筆股票交易記錄"""
+    user_id = get_current_user_id()
     try:
-        row = Stock.find_by_id(id)
+        row = Stock.find_by_id(id, user_id)
         if not row:
             return jsonify({'success': False, 'message': '記錄不存在'}), 404
         return jsonify({'success': True, 'data': _serialize_rows([row])[0]})
@@ -78,7 +81,7 @@ def get_stock(id):
 
 @app_finance_stock.route('/', methods=['POST'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def create_stock():
     """新增股票交易記錄"""
     data = request.get_json()
@@ -106,12 +109,14 @@ def create_stock():
     if amount is None:
         return jsonify({'success': False, 'message': 'amount 不得為空'}), 400
 
+    user_id = get_current_user_id()
     try:
         new_id = Stock.create(
             date=date, ticker=ticker, company_name=company_name,
             market=market, action=action, shares=float(shares),
             price=float(price), amount=float(amount),
             fee=float(fee), tax=float(tax), note=note,
+            user_id=user_id,
         )
         return jsonify({'success': True, 'id': new_id}), 201
     except Exception as e:
@@ -120,7 +125,7 @@ def create_stock():
 
 @app_finance_stock.route('/<int:id>', methods=['PUT'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def update_stock(id):
     """更新股票交易記錄"""
     data = request.get_json()
@@ -131,8 +136,9 @@ def update_stock(id):
                'shares', 'price', 'amount', 'fee', 'tax', 'note'}
     kwargs = {k: v for k, v in data.items() if k in allowed}
 
+    user_id = get_current_user_id()
     try:
-        if not Stock.update(id, **kwargs):
+        if not Stock.update(id, user_id, **kwargs):
             return jsonify({'success': False, 'message': '記錄不存在或無變更'}), 404
         return jsonify({'success': True})
     except Exception as e:
@@ -141,11 +147,12 @@ def update_stock(id):
 
 @app_finance_stock.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def delete_stock(id):
     """刪除股票交易記錄"""
+    user_id = get_current_user_id()
     try:
-        if not Stock.delete(id):
+        if not Stock.delete(id, user_id):
             return jsonify({'success': False, 'message': '記錄不存在'}), 404
         return jsonify({'success': True})
     except Exception as e:
@@ -154,11 +161,12 @@ def delete_stock(id):
 
 @app_finance_stock.route('/portfolio', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def portfolio():
     """持倉彙總（各 ticker 持有股數、平均成本、總成本）"""
+    user_id = get_current_user_id()
     try:
-        data = Stock.portfolio()
+        data = Stock.portfolio(user_id)
         return jsonify({'success': True, 'data': data})
     except Exception as e:
         return jsonify({'success': False, 'message': f'查詢失敗：{e}'}), 500
@@ -166,11 +174,12 @@ def portfolio():
 
 @app_finance_stock.route('/pnl', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def pnl():
     """損益彙總（各 ticker 已實現損益）"""
+    user_id = get_current_user_id()
     try:
-        data = Stock.pnl()
+        data = Stock.pnl(user_id)
         return jsonify({'success': True, 'data': data})
     except Exception as e:
         return jsonify({'success': False, 'message': f'查詢失敗：{e}'}), 500
@@ -178,11 +187,12 @@ def pnl():
 
 @app_finance_stock.route('/dividend', methods=['GET'])
 @jwt_required()
-@require_role('admin', 'operator')
+@require_role('admin', 'user')
 def dividend():
     """股利彙總（各 ticker 累計股利）"""
+    user_id = get_current_user_id()
     try:
-        rows = Stock.dividend_summary()
+        rows = Stock.dividend_summary(user_id)
         data = []
         for r in rows:
             row = dict(r)

@@ -164,6 +164,15 @@
         本月淨額：<strong id="nav-net-amount" class="text-info">—</strong>
       </span>
       <span class="text-light small d-none d-md-block" id="nav-username"></span>
+      <span id="nav-role-badge" class="badge d-none d-md-inline" style="font-size:.7rem"></span>
+      <a href="/finance/quick/" target="_blank"
+         class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" title="手機快速記帳">
+        <i class="bi bi-phone"></i><span class="d-none d-sm-inline">快速記帳</span>
+      </a>
+      <button class="btn btn-sm btn-outline-secondary d-none d-md-inline-flex align-items-center gap-1"
+              onclick="switchTab('users')" id="nav-profile-btn" title="帳號設定">
+        <i class="bi bi-person-gear"></i>
+      </button>
       <button class="btn btn-sm btn-outline-danger" onclick="doLogout()">
         <i class="bi bi-box-arrow-right"></i>
       </button>
@@ -194,13 +203,19 @@
       <a class="nav-link" id="nav-budgets"              onclick="switchTab('budgets')">
         <i class="bi bi-wallet2"></i>預算管理
       </a>
+      <a class="nav-link" id="nav-recurring"            onclick="switchTab('recurring')">
+        <i class="bi bi-calendar-check"></i>固定收入
+      </a>
+      <a class="nav-link" id="nav-users" style="display:none" onclick="switchTab('users')">
+        <i class="bi bi-people"></i>用戶管理
+      </a>
 
       <div class="nav-section">分析</div>
       <a class="nav-link" id="nav-reports"              onclick="switchTab('reports')">
         <i class="bi bi-bar-chart-line"></i>報表分析
       </a>
       <a class="nav-link" id="nav-export"               onclick="switchTab('export')">
-        <i class="bi bi-cloud-download"></i>資料匯出
+        <i class="bi bi-arrow-left-right"></i>匯入 / 匯出
       </a>
 
       <div class="sidebar-footer">
@@ -381,9 +396,14 @@
               </select>
               <button class="btn btn-primary btn-sm" onclick="loadStockRecords(1)">查詢</button>
             </div>
-            <button class="btn btn-success btn-sm" onclick="openStockModal()">
-              <i class="bi bi-plus-lg me-1"></i>新增
-            </button>
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm" onclick="openStockModal()">
+                <i class="bi bi-plus-lg me-1"></i>新增
+              </button>
+              <button class="btn btn-outline-primary btn-sm" onclick="openYuantaModal()">
+                <i class="bi bi-cloud-download me-1"></i>從元大匯入
+              </button>
+            </div>
           </div>
           <div class="card p-3">
             <div class="table-responsive">
@@ -571,57 +591,373 @@
         </div>
       </div>
 
-      <!-- ─── 資料匯出 ─── -->
+      <!-- ─── 匯入 / 匯出 ─── -->
       <div id="tab-export" class="d-none">
-        <p class="section-title"><i class="bi bi-cloud-download me-2 text-primary"></i>資料匯出</p>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="card p-4">
-              <h6 class="fw-bold mb-3"><i class="bi bi-arrow-left-right me-1 text-primary"></i>收支記錄匯出</h6>
-              <div class="mb-3">
-                <label class="form-label small">開始日期</label>
-                <input type="date" id="exp-tx-from" class="form-control form-control-sm">
+        <p class="section-title"><i class="bi bi-arrow-left-right me-2 text-primary"></i>匯入 / 匯出</p>
+
+        <!-- 子頁籤 -->
+        <ul class="nav nav-tabs stock-subtab mb-3" id="io-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" onclick="switchIOTab('export')" id="iotab-export">
+              <i class="bi bi-cloud-download me-1"></i>資料匯出
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" onclick="switchIOTab('import')" id="iotab-import">
+              <i class="bi bi-cloud-upload me-1"></i>批次匯入
+            </a>
+          </li>
+        </ul>
+
+        <!-- ── 匯出子頁 ── -->
+        <div id="iotab-content-export">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card p-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-arrow-left-right me-1 text-primary"></i>收支記錄匯出</h6>
+                <div class="mb-3">
+                  <label class="form-label small">開始日期</label>
+                  <input type="date" id="exp-tx-from" class="form-control form-control-sm">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small">結束日期</label>
+                  <input type="date" id="exp-tx-to" class="form-control form-control-sm">
+                </div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-primary btn-sm flex-fill" onclick="doExport('transactions','csv')">
+                    <i class="bi bi-filetype-csv me-1"></i>匯出 CSV
+                  </button>
+                  <button class="btn btn-success btn-sm flex-fill" onclick="doExport('transactions','excel')">
+                    <i class="bi bi-file-earmark-excel me-1"></i>匯出 Excel
+                  </button>
+                </div>
               </div>
-              <div class="mb-3">
-                <label class="form-label small">結束日期</label>
-                <input type="date" id="exp-tx-to" class="form-control form-control-sm">
-              </div>
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline-primary btn-sm flex-fill" onclick="doExport('transactions','csv')">
-                  <i class="bi bi-filetype-csv me-1"></i>匯出 CSV
-                </button>
-                <button class="btn btn-success btn-sm flex-fill" onclick="doExport('transactions','excel')">
-                  <i class="bi bi-file-earmark-excel me-1"></i>匯出 Excel
-                </button>
+            </div>
+            <div class="col-md-6">
+              <div class="card p-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-1 text-success"></i>股票記錄匯出</h6>
+                <div class="mb-3">
+                  <label class="form-label small">開始日期</label>
+                  <input type="date" id="exp-sk-from" class="form-control form-control-sm">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small">結束日期</label>
+                  <input type="date" id="exp-sk-to" class="form-control form-control-sm">
+                </div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-primary btn-sm flex-fill" onclick="doExport('stocks','csv')">
+                    <i class="bi bi-filetype-csv me-1"></i>匯出 CSV
+                  </button>
+                  <button class="btn btn-success btn-sm flex-fill" onclick="doExport('stocks','excel')">
+                    <i class="bi bi-file-earmark-excel me-1"></i>匯出 Excel
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="card p-4">
-              <h6 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-1 text-success"></i>股票記錄匯出</h6>
-              <div class="mb-3">
-                <label class="form-label small">開始日期</label>
-                <input type="date" id="exp-sk-from" class="form-control form-control-sm">
+          <div class="alert alert-info mt-3 small">
+            <i class="bi bi-info-circle me-1"></i>
+            CSV 檔案以 UTF-8 BOM 編碼輸出，可直接以 Excel 開啟並正確顯示中文。<br>
+            Excel 檔案格式為 .xlsx，支援多欄位資料與格式化。
+          </div>
+        </div>
+
+        <!-- ── 匯入子頁 ── -->
+        <div id="iotab-content-import" class="d-none">
+
+          <!-- 設定列 -->
+          <div class="card p-3 mb-3">
+            <div class="row g-3 align-items-end">
+              <div class="col-sm-4">
+                <label class="form-label small fw-bold">資料類型</label>
+                <select id="imp-type" class="form-select form-select-sm" onchange="onImportTypeChange()">
+                  <option value="transactions">收支記錄</option>
+                  <option value="stocks">股票記錄</option>
+                </select>
               </div>
-              <div class="mb-3">
-                <label class="form-label small">結束日期</label>
-                <input type="date" id="exp-sk-to" class="form-control form-control-sm">
+              <div class="col-sm-4">
+                <label class="form-label small fw-bold">重複處理</label>
+                <select id="imp-skip-dup" class="form-select form-select-sm">
+                  <option value="true">跳過重複（相同日期金額）</option>
+                  <option value="false">允許重複匯入</option>
+                </select>
               </div>
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline-primary btn-sm flex-fill" onclick="doExport('stocks','csv')">
-                  <i class="bi bi-filetype-csv me-1"></i>匯出 CSV
-                </button>
-                <button class="btn btn-success btn-sm flex-fill" onclick="doExport('stocks','excel')">
-                  <i class="bi bi-file-earmark-excel me-1"></i>匯出 Excel
-                </button>
+              <div class="col-sm-4">
+                <label class="form-label small fw-bold">下載欄位範本</label>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="downloadTemplate()">
+                    <i class="bi bi-download me-1"></i>CSV 範本
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 欄位說明 -->
+            <div class="mt-3">
+              <div id="imp-cols-tx" class="small text-muted">
+                <strong>收支欄位：</strong>
+                <code>date</code>（YYYY-MM-DD）、
+                <code>type</code>（income / expense 或 收入 / 支出）、
+                <code>amount</code>（數字）、
+                <code>category_name</code>（分類名稱，選填）、
+                <code>description</code>（說明，選填）、
+                <code>note</code>（備註，選填）
+              </div>
+              <div id="imp-cols-sk" class="small text-muted d-none">
+                <strong>股票欄位：</strong>
+                <code>date</code>、
+                <code>ticker</code>（股票代號）、
+                <code>company_name</code>（選填）、
+                <code>market</code>（TW/US，選填）、
+                <code>action</code>（buy / sell 或 買入 / 賣出）、
+                <code>shares</code>、
+                <code>price</code>、
+                <code>amount</code>（總金額）、
+                <code>fee</code>（手續費，選填）、
+                <code>tax</code>（交易稅，選填）、
+                <code>note</code>（選填）
+              </div>
+            </div>
+          </div>
+
+          <!-- 上傳區 -->
+          <div id="imp-dropzone"
+               class="border border-2 border-dashed rounded-3 p-5 text-center mb-3"
+               style="border-color:#adb5bd!important;cursor:pointer;transition:all .2s"
+               onclick="document.getElementById('imp-file-input').click()"
+               ondragover="impDragOver(event)"
+               ondragleave="impDragLeave(event)"
+               ondrop="impDrop(event)">
+            <i class="bi bi-cloud-upload fs-1 text-muted d-block mb-2"></i>
+            <div class="fw-semibold text-muted">點擊選擇或拖放 CSV / Excel 檔案</div>
+            <div class="small text-muted mt-1">支援 .csv、.xlsx、.xls；最大 10 MB</div>
+            <div id="imp-file-name" class="mt-2 text-primary fw-semibold d-none"></div>
+          </div>
+          <input type="file" id="imp-file-input" accept=".csv,.xlsx,.xls" class="d-none" onchange="onImportFileSelect(event)"/>
+
+          <!-- 預覽區 -->
+          <div id="imp-preview-wrap" class="d-none mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-semibold small">預覽（前 5 筆）</span>
+              <span id="imp-preview-count" class="badge bg-secondary"></span>
+            </div>
+            <div class="table-responsive" style="max-height:220px;overflow-y:auto">
+              <table class="table table-sm table-bordered table-hover mb-0" style="font-size:.8rem">
+                <thead id="imp-preview-head" class="table-light"></thead>
+                <tbody id="imp-preview-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 執行按鈕 -->
+          <div class="d-flex gap-2 mb-3">
+            <button id="btn-do-import" class="btn btn-primary flex-fill" onclick="doImport()" disabled>
+              <i class="bi bi-cloud-upload me-1"></i>開始匯入
+            </button>
+            <button class="btn btn-outline-secondary" onclick="resetImport()">
+              <i class="bi bi-x-circle me-1"></i>清除
+            </button>
+          </div>
+
+          <!-- 結果區 -->
+          <div id="imp-result" class="d-none">
+            <div class="d-flex gap-2 flex-wrap mb-2">
+              <span class="badge bg-secondary fs-6" id="imp-r-fetched"></span>
+              <span class="badge bg-success fs-6"   id="imp-r-inserted"></span>
+              <span class="badge bg-warning text-dark fs-6" id="imp-r-skipped"></span>
+              <span class="badge bg-danger fs-6"    id="imp-r-errors" style="display:none!important"></span>
+            </div>
+            <div id="imp-error-list" class="d-none">
+              <div class="alert alert-warning small p-2">
+                <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>以下列發生錯誤：</div>
+                <table class="table table-sm mb-0" style="font-size:.75rem">
+                  <thead><tr><th>行號</th><th>錯誤訊息</th><th>原始資料</th></tr></thead>
+                  <tbody id="imp-error-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /iotab-content-import -->
+
+      </div><!-- /tab-export -->
+
+      <!-- 固定收入 tab -->
+      <div id="tab-recurring" class="d-none">
+        <p class="section-title"><i class="bi bi-calendar-check me-2 text-primary"></i>固定收入 &amp; 勞健保</p>
+
+        <!-- 子頁籤 -->
+        <ul class="nav nav-tabs stock-subtab mb-3" id="recurring-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" onclick="switchRecurringTab('rules')" id="rtab-rules">週期收入設定</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" onclick="switchRecurringTab('insurance')" id="rtab-insurance">勞健保計算</a>
+          </li>
+        </ul>
+
+        <!-- 週期收入設定 -->
+        <div id="rtab-content-rules">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex gap-2 align-items-center">
+              <span class="small text-muted">已到期未產生：</span>
+              <span id="due-badge" class="badge bg-danger d-none">0</span>
+              <span id="due-none" class="badge bg-secondary">無</span>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-warning btn-sm" onclick="triggerAllDue()" id="btn-trigger-all">
+                <i class="bi bi-lightning-charge me-1"></i>一鍵產生到期
+              </button>
+              <button class="btn btn-success btn-sm" onclick="openRecurringModal()">
+                <i class="bi bi-plus-lg me-1"></i>新增
+              </button>
+            </div>
+          </div>
+          <div class="card p-3">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr>
+                  <th>名稱</th><th>金額</th><th>週期</th><th>下次執行</th>
+                  <th>分類</th><th>含保費</th><th>狀態</th><th style="width:110px">操作</th>
+                </tr></thead>
+                <tbody id="recurring-tbody">
+                  <tr><td colspan="8" class="text-center text-muted">載入中…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 勞健保計算 -->
+        <div id="rtab-content-insurance" class="d-none">
+          <div class="row g-3">
+            <!-- 左：設定輸入 -->
+            <div class="col-lg-6">
+              <div class="card p-3">
+                <p class="fw-semibold mb-3"><i class="bi bi-calculator me-2 text-primary"></i>勞健保設定</p>
+                <div class="row g-2">
+                  <div class="col-12">
+                    <label class="form-label small fw-semibold">月薪 <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="number" id="ins-salary" class="form-control" placeholder="45000" min="0" step="100"
+                             oninput="calcInsuranceLive()">
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">勞保投保薪資<br><span class="text-muted" style="font-size:.75rem">留空=自動對應級距</span></label>
+                    <input type="number" id="ins-labor-salary" class="form-control form-control-sm" placeholder="自動" min="0" oninput="calcInsuranceLive()">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">健保投保金額<br><span class="text-muted" style="font-size:.75rem">留空=自動對應級距</span></label>
+                    <input type="number" id="ins-health-salary" class="form-control form-control-sm" placeholder="自動" min="0" oninput="calcInsuranceLive()">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">勞保費率（員工負擔）%<br><span class="text-muted" style="font-size:.75rem">費率×員工比例，預設 2.4%</span></label>
+                    <input type="number" id="ins-labor-rate" class="form-control form-control-sm" value="2.4" min="0" max="20" step="0.01" oninput="calcInsuranceLive()">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">健保費率 %<br><span class="text-muted" style="font-size:.75rem">2024 為 5.17%</span></label>
+                    <input type="number" id="ins-health-rate" class="form-control form-control-sm" value="5.17" min="0" max="20" step="0.01" oninput="calcInsuranceLive()">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">健保員工負擔比例<br><span class="text-muted" style="font-size:.75rem">受僱 30% = 0.30</span></label>
+                    <input type="number" id="ins-health-ratio" class="form-control form-control-sm" value="0.30" min="0" max="1" step="0.01" oninput="calcInsuranceLive()">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">眷屬人數</label>
+                    <input type="number" id="ins-dependents" class="form-control form-control-sm" value="0" min="0" max="10" step="1" oninput="calcInsuranceLive()">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">勞退自提率 %<br><span class="text-muted" style="font-size:.75rem">0–6%，可抵稅</span></label>
+                    <input type="number" id="ins-pension-rate" class="form-control form-control-sm" value="0" min="0" max="6" step="0.5" oninput="calcInsuranceLive()">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small">備注</label>
+                    <input type="text" id="ins-note" class="form-control form-control-sm" placeholder="例：2025年調薪後">
+                  </div>
+                  <input type="hidden" id="ins-id">
+                  <div class="col-12 mt-1">
+                    <button class="btn btn-primary btn-sm w-100" onclick="saveInsurance()">
+                      <i class="bi bi-save me-1"></i>儲存設定
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 右：試算結果 -->
+            <div class="col-lg-6">
+              <div class="card p-3">
+                <p class="fw-semibold mb-3"><i class="bi bi-receipt me-2 text-success"></i>每月試算結果</p>
+                <div id="ins-result-wrap">
+                  <p class="text-muted text-center small mt-4">請輸入月薪以查看試算</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div class="alert alert-info mt-3 small">
-          <i class="bi bi-info-circle me-1"></i>
-          CSV 檔案以 UTF-8 BOM 編碼輸出，可直接以 Excel 開啟並正確顯示中文。<br>
-          Excel 檔案格式為 .xlsx，支援多欄位資料與格式化。
+      </div>
+
+      <!-- 用戶管理 tab（管理者專用）-->
+      <div id="tab-users" class="d-none">
+        <p class="section-title"><i class="bi bi-people me-2 text-primary"></i>用戶管理</p>
+
+        <!-- 使用者列表 -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted small">管理系統使用者帳號（管理者專用）</span>
+          <button class="btn btn-success btn-sm" onclick="openUserModal()">
+            <i class="bi bi-plus-lg me-1"></i>新增使用者
+          </button>
+        </div>
+        <div class="card p-3 mb-3">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr>
+                <th style="width:50px">ID</th>
+                <th>帳號</th><th>顯示名稱</th><th>信箱</th>
+                <th>角色</th><th>狀態</th><th>最後登入</th>
+                <th style="width:100px">操作</th>
+              </tr></thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="8" class="text-center text-muted">載入中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 個人帳號設定（所有人可見）-->
+        <div class="card p-3">
+          <p class="fw-semibold mb-3"><i class="bi bi-person-gear me-2 text-primary"></i>我的帳號設定</p>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small">顯示名稱</label>
+              <input type="text" id="my-display-name" class="form-control form-control-sm" placeholder="顯示用名稱">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small">信箱</label>
+              <input type="email" id="my-email" class="form-control form-control-sm" placeholder="email@example.com">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button class="btn btn-primary btn-sm w-100" onclick="saveProfile()">
+                <i class="bi bi-save me-1"></i>更新個人資料
+              </button>
+            </div>
+          </div>
+          <hr class="my-3">
+          <p class="fw-semibold small mb-2"><i class="bi bi-key me-1"></i>修改密碼</p>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <input type="password" id="my-old-pw" class="form-control form-control-sm" placeholder="舊密碼">
+            </div>
+            <div class="col-md-4">
+              <input type="password" id="my-new-pw" class="form-control form-control-sm" placeholder="新密碼（至少 6 碼）">
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-warning btn-sm w-100" onclick="changeMyPassword()">
+                <i class="bi bi-key me-1"></i>修改密碼
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -757,6 +1093,236 @@
   </div>
 </div>
 
+<!-- 元大證券匯入 Modal -->
+<div class="modal fade" id="yuantaModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold">
+          <i class="bi bi-cloud-download me-2 text-primary"></i>從元大證券匯入交易明細
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- 日期範圍 -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">起始日期</label>
+            <input type="date" id="yuanta-from" class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">結束日期</label>
+            <input type="date" id="yuanta-to" class="form-control form-control-sm">
+          </div>
+        </div>
+        <!-- 選項 -->
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" id="yuanta-skip-dup" checked>
+          <label class="form-check-label small" for="yuanta-skip-dup">
+            跳過重複資料（相同日期＋代號＋股數＋金額）
+          </label>
+        </div>
+        <!-- 狀態區 -->
+        <div id="yuanta-status" class="d-none">
+          <div id="yuanta-alert" class="alert mb-2" role="alert"></div>
+          <!-- 預覽結果表格 -->
+          <div id="yuanta-preview-wrap" class="d-none">
+            <p class="small fw-semibold mb-1">預覽資料（<span id="yuanta-preview-count">0</span> 筆，不寫入資料庫）：</p>
+            <div class="table-responsive" style="max-height:280px;overflow-y:auto">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>日期</th><th>代號</th><th>公司</th><th>操作</th>
+                    <th class="text-end">股數</th><th class="text-end">單價</th>
+                    <th class="text-end">金額</th><th class="text-end">手續費</th>
+                  </tr>
+                </thead>
+                <tbody id="yuanta-preview-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 同步結果 -->
+          <div id="yuanta-sync-result" class="d-none">
+            <div class="row text-center g-2">
+              <div class="col-3">
+                <div class="border rounded p-2">
+                  <div class="fs-4 fw-bold text-primary" id="ys-fetched">0</div>
+                  <div class="small text-muted">從 API 取得</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="border rounded p-2">
+                  <div class="fs-4 fw-bold text-success" id="ys-inserted">0</div>
+                  <div class="small text-muted">寫入成功</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="border rounded p-2">
+                  <div class="fs-4 fw-bold text-warning" id="ys-skipped">0</div>
+                  <div class="small text-muted">跳過重複</div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="border rounded p-2">
+                  <div class="fs-4 fw-bold text-danger" id="ys-errors">0</div>
+                  <div class="small text-muted">失敗</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 載入提示 -->
+        <div id="yuanta-loading" class="d-none text-center py-3">
+          <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+          <span class="text-muted small" id="yuanta-loading-msg">連線中…</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">關閉</button>
+        <button class="btn btn-outline-primary btn-sm" onclick="yuantaPreview()" id="btn-yuanta-preview">
+          <i class="bi bi-eye me-1"></i>預覽
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="yuantaSync()" id="btn-yuanta-sync">
+          <i class="bi bi-cloud-download me-1"></i>匯入
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 用戶管理 Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" id="userModalTitle">新增使用者</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="um-id">
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="form-label small">帳號 *</label>
+            <input type="text" id="um-username" class="form-control form-control-sm" placeholder="登入帳號（英數字）">
+          </div>
+          <div class="col-12">
+            <label class="form-label small">密碼 <span id="um-pw-hint" class="text-muted small">（至少 6 碼）</span></label>
+            <input type="password" id="um-password" class="form-control form-control-sm" placeholder="輸入密碼">
+          </div>
+          <div class="col-6">
+            <label class="form-label small">顯示名稱</label>
+            <input type="text" id="um-display-name" class="form-control form-control-sm" placeholder="顯示用名稱">
+          </div>
+          <div class="col-6">
+            <label class="form-label small">信箱</label>
+            <input type="email" id="um-email" class="form-control form-control-sm" placeholder="選填">
+          </div>
+          <div class="col-12">
+            <label class="form-label small">角色</label>
+            <select id="um-role" class="form-select form-select-sm">
+              <option value="user">一般使用者</option>
+              <option value="admin">後台管理者</option>
+            </select>
+            <div class="form-text text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              後台管理者可管理所有使用者；一般使用者只能存取自己的財務資料。
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveUser()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 固定收入 Modal -->
+<div class="modal fade" id="recurringModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" id="recurringModalTitle">新增固定收入</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="rec-id">
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="form-label small">名稱 *</label>
+            <input type="text" id="rec-name" class="form-control form-control-sm" placeholder="薪水、獎金…">
+          </div>
+          <div class="col-6">
+            <label class="form-label small">金額 *</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">$</span>
+              <input type="number" id="rec-amount" class="form-control" placeholder="0" min="0" step="0.01">
+            </div>
+          </div>
+          <div class="col-6">
+            <label class="form-label small">週期 *</label>
+            <select id="rec-frequency" class="form-select form-select-sm" onchange="updateFreqFields()">
+              <option value="monthly">每月</option>
+              <option value="yearly">每年</option>
+              <option value="weekly">每週</option>
+              <option value="daily">每日</option>
+              <option value="hourly">每小時</option>
+            </select>
+          </div>
+          <!-- 動態欄位 -->
+          <div id="rec-field-dom" class="col-6">
+            <label class="form-label small">每月幾號</label>
+            <input type="number" id="rec-dom" class="form-control form-control-sm" value="1" min="1" max="31">
+          </div>
+          <div id="rec-field-moy" class="col-6 d-none">
+            <label class="form-label small">幾月</label>
+            <input type="number" id="rec-moy" class="form-control form-control-sm" value="1" min="1" max="12">
+          </div>
+          <div id="rec-field-dow" class="col-6 d-none">
+            <label class="form-label small">每週幾</label>
+            <select id="rec-dow" class="form-select form-select-sm">
+              <option value="0">週一</option>
+              <option value="1">週二</option>
+              <option value="2">週三</option>
+              <option value="3">週四</option>
+              <option value="4">週五</option>
+              <option value="5">週六</option>
+              <option value="6">週日</option>
+            </select>
+          </div>
+          <div id="rec-field-hour" class="col-6 d-none">
+            <label class="form-label small">幾點（0-23）</label>
+            <input type="number" id="rec-hour" class="form-control form-control-sm" value="9" min="0" max="23">
+          </div>
+          <div class="col-12">
+            <label class="form-label small">收入分類</label>
+            <select id="rec-category" class="form-select form-select-sm">
+              <option value="">無</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="rec-auto-ins">
+              <label class="form-check-label small" for="rec-auto-ins">
+                觸發時同步產生勞健保費用（需先設定月薪）
+              </label>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="form-label small">備注</label>
+            <textarea id="rec-note" class="form-control form-control-sm" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveRecurring()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 分類 Modal -->
 <div class="modal fade" id="catModal" tabindex="-1">
   <div class="modal-dialog">
@@ -855,8 +1421,11 @@
 'use strict';
 
 // ── 全域狀態 ──────────────────────────────────────────
-const TOKEN_KEY   = 'finance_token';
-const USERNAME_KEY = 'finance_user';
+const TOKEN_KEY        = 'finance_token';
+const USERNAME_KEY     = 'finance_user';
+const USER_ID_KEY      = 'finance_user_id';
+const DISPLAY_NAME_KEY = 'finance_display_name';
+const ROLE_KEY         = 'finance_role';
 let allCategories = [];   // 快取分類清單
 let txPage = 1, txTotal = 0;
 let skPage = 1;
@@ -864,8 +1433,25 @@ let chartTrend = null, chartPie = null, chartYearly = null, chartCatPie = null, 
 const now = new Date();
 
 // ── 工具函式 ──────────────────────────────────────────
-const getToken = ()  => localStorage.getItem(TOKEN_KEY);
-const getUser  = ()  => localStorage.getItem(USERNAME_KEY);
+const getToken       = ()  => localStorage.getItem(TOKEN_KEY);
+const getUser        = ()  => localStorage.getItem(USERNAME_KEY);
+const getCurrentRole = ()  => localStorage.getItem(ROLE_KEY) || 'user';
+const isAdmin        = ()  => getCurrentRole() === 'admin';
+
+function updateUserInfo() {
+  const displayName = localStorage.getItem(DISPLAY_NAME_KEY) || getUser() || '';
+  const role        = getCurrentRole();
+  const usernameEl  = document.getElementById('nav-username');
+  const badgeEl     = document.getElementById('nav-role-badge');
+  if (usernameEl) usernameEl.textContent = displayName;
+  if (badgeEl) {
+    badgeEl.textContent  = role === 'admin' ? '管理員' : '一般';
+    badgeEl.className    = `badge d-none d-md-inline ${role === 'admin' ? 'bg-warning text-dark' : 'bg-secondary'}`;
+  }
+  // 管理者才顯示用戶管理選單
+  const navUsers = document.getElementById('nav-users');
+  if (navUsers) navUsers.style.display = role === 'admin' ? '' : 'none';
+}
 
 function today() {
   return now.toISOString().slice(0, 10);
@@ -937,8 +1523,12 @@ async function doLogin() {
     });
     const json = await res.json();
     if (json.success) {
-      localStorage.setItem(TOKEN_KEY, json.token);
-      localStorage.setItem(USERNAME_KEY, username);
+      localStorage.setItem(TOKEN_KEY,        json.token);
+      localStorage.setItem(USERNAME_KEY,     json.username || username);
+      localStorage.setItem(USER_ID_KEY,      json.user_id  || '');
+      localStorage.setItem(DISPLAY_NAME_KEY, json.display_name || '');
+      localStorage.setItem(ROLE_KEY,         json.role     || 'user');
+      updateUserInfo();
       enterDashboard();
     } else {
       errEl.textContent = json.message || '帳號或密碼錯誤';
@@ -953,6 +1543,9 @@ async function doLogin() {
 function doLogout() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USERNAME_KEY);
+  localStorage.removeItem(USER_ID_KEY);
+  localStorage.removeItem(DISPLAY_NAME_KEY);
+  localStorage.removeItem(ROLE_KEY);
   document.getElementById('page-dashboard').style.display = 'none';
   document.getElementById('page-login').style.display = 'flex';
 }
@@ -960,7 +1553,7 @@ function doLogout() {
 function enterDashboard() {
   document.getElementById('page-login').style.display = 'none';
   document.getElementById('page-dashboard').style.display = 'flex';
-  document.getElementById('nav-username').textContent = getUser();
+  updateUserInfo();
   initYearSelectors();
   loadAllCategories();
   switchTab('dashboard');
@@ -996,10 +1589,12 @@ function closeSidebar() {
 }
 
 function switchTab(tab) {
-  const tabs = ['dashboard','transactions','stocks','categories','budgets','reports','export'];
+  const tabs = ['dashboard','transactions','stocks','categories','budgets','recurring','users','reports','export'];
   tabs.forEach(t => {
-    document.getElementById(`tab-${t}`).classList.toggle('d-none', t !== tab);
-    document.getElementById(`nav-${t}`).classList.toggle('active', t === tab);
+    const tabEl = document.getElementById(`tab-${t}`);
+    const navEl = document.getElementById(`nav-${t}`);
+    if (tabEl) tabEl.classList.toggle('d-none', t !== tab);
+    if (navEl) navEl.classList.toggle('active', t === tab);
   });
   closeSidebar();
   if (tab === 'dashboard')    loadDashboard();
@@ -1007,6 +1602,8 @@ function switchTab(tab) {
   if (tab === 'stocks')       { switchStockTab('records'); loadStockRecords(1); }
   if (tab === 'categories')   { loadAllCategories(); renderCategories(); }
   if (tab === 'budgets')      loadBudgets();
+  if (tab === 'recurring')    loadRecurringList();
+  if (tab === 'users')        { if (isAdmin()) loadUsers(); loadMyProfile(); }
   if (tab === 'reports')      loadReports();
 }
 
@@ -1527,6 +2124,590 @@ function deleteStock(id, ticker) {
 }
 
 // ════════════════════════════════════
+// 固定收入 & 勞健保
+// ════════════════════════════════════
+function switchRecurringTab(tab) {
+  ['rules','insurance'].forEach(t => {
+    document.getElementById('rtab-content-'+t).classList.toggle('d-none', t !== tab);
+    document.getElementById('rtab-'+t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'insurance') loadInsuranceSettings();
+}
+
+async function loadRecurringList() {
+  const tbody = document.getElementById('recurring-tbody');
+  try {
+    const res  = await apiFetch('/finance/recurring/');
+    const data = await res.json();
+    if (!data.success || !data.data.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">尚無設定</td></tr>';
+      return;
+    }
+    const freqLabel = { yearly:'每年', monthly:'每月', weekly:'每週', daily:'每日', hourly:'每小時' };
+    tbody.innerHTML = data.data.map(r => {
+      const today = new Date().toISOString().slice(0,10);
+      const isDue = r.next_run_date && r.next_run_date <= today && r.is_active;
+      return `
+      <tr>
+        <td>${r.name}</td>
+        <td class="text-success fw-semibold">${formatMoney(r.amount)}</td>
+        <td>${freqLabel[r.frequency] || r.frequency}
+          <small class="text-muted">${_freqDetail(r)}</small></td>
+        <td>
+          ${r.next_run_date
+            ? `<span class="${isDue?'text-danger fw-bold':''}">${r.next_run_date}</span>${isDue?' <span class="badge bg-danger">到期</span>':''}`
+            : '—'}
+        </td>
+        <td>${r.category_name || '—'}</td>
+        <td>${r.auto_insurance ? '<i class="bi bi-check-circle text-success"></i>' : '—'}</td>
+        <td>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" ${r.is_active?'checked':''} onchange="toggleRecurring(${r.id})">
+          </div>
+        </td>
+        <td>
+          <button class="btn btn-xs btn-sm btn-outline-warning py-0 px-1 me-1" onclick="triggerOne(${r.id})" title="立即產生">
+            <i class="bi bi-lightning-charge"></i>
+          </button>
+          <button class="btn btn-xs btn-sm btn-outline-secondary py-0 px-1 me-1" onclick="editRecurring(${r.id})">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-xs btn-sm btn-outline-danger py-0 px-1" onclick="deleteRecurring(${r.id},'${r.name}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+    checkDueBadge(data.data);
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-danger">${e.message}</td></tr>`;
+  }
+}
+
+function _freqDetail(r) {
+  if (r.frequency === 'monthly') return `（每月 ${r.day_of_month} 號）`;
+  if (r.frequency === 'yearly')  return `（${r.month_of_year} 月 ${r.day_of_month} 日）`;
+  const dowMap = ['一','二','三','四','五','六','日'];
+  if (r.frequency === 'weekly')  return `（週${dowMap[r.day_of_week] || r.day_of_week}）`;
+  if (r.frequency === 'hourly')  return `（${r.hour_of_day} 時）`;
+  return '';
+}
+
+function checkDueBadge(list) {
+  const today = new Date().toISOString().slice(0,10);
+  const due = (list||[]).filter(r => r.is_active && r.next_run_date && r.next_run_date <= today).length;
+  document.getElementById('due-badge').textContent = due;
+  document.getElementById('due-badge').classList.toggle('d-none', due === 0);
+  document.getElementById('due-none').classList.toggle('d-none', due > 0);
+}
+
+function openRecurringModal(data = null) {
+  document.getElementById('recurringModalTitle').textContent = data ? '編輯固定收入' : '新增固定收入';
+  document.getElementById('rec-id').value        = data ? data.id : '';
+  document.getElementById('rec-name').value      = data ? data.name : '';
+  document.getElementById('rec-amount').value    = data ? data.amount : '';
+  document.getElementById('rec-frequency').value = data ? data.frequency : 'monthly';
+  document.getElementById('rec-dom').value       = data ? (data.day_of_month||1) : 1;
+  document.getElementById('rec-moy').value       = data ? (data.month_of_year||1) : 1;
+  document.getElementById('rec-dow').value       = data ? (data.day_of_week??0) : 0;
+  document.getElementById('rec-hour').value      = data ? (data.hour_of_day||9) : 9;
+  document.getElementById('rec-auto-ins').checked = data ? !!data.auto_insurance : false;
+  document.getElementById('rec-note').value      = data ? (data.note||'') : '';
+  // Fill category dropdown with income categories
+  const sel = document.getElementById('rec-category');
+  sel.innerHTML = '<option value="">無</option>';
+  (allCategories||[]).filter(c => c.type === 'income').forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.name;
+    if (data && data.category_id == c.id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  updateFreqFields();
+  new bootstrap.Modal(document.getElementById('recurringModal')).show();
+}
+
+function updateFreqFields() {
+  const freq = document.getElementById('rec-frequency').value;
+  document.getElementById('rec-field-dom').classList.toggle('d-none', !['monthly','yearly'].includes(freq));
+  document.getElementById('rec-field-moy').classList.toggle('d-none', freq !== 'yearly');
+  document.getElementById('rec-field-dow').classList.toggle('d-none', freq !== 'weekly');
+  document.getElementById('rec-field-hour').classList.toggle('d-none', !['daily','hourly'].includes(freq));
+}
+
+async function saveRecurring() {
+  const id   = document.getElementById('rec-id').value;
+  const name = document.getElementById('rec-name').value.trim();
+  const amt  = parseFloat(document.getElementById('rec-amount').value);
+  const freq = document.getElementById('rec-frequency').value;
+  if (!name || !amt || !freq) { alert('請填寫名稱、金額、週期'); return; }
+
+  const body = {
+    name, amount: amt, frequency: freq,
+    day_of_month:  parseInt(document.getElementById('rec-dom').value)||1,
+    month_of_year: parseInt(document.getElementById('rec-moy').value)||1,
+    day_of_week:   parseInt(document.getElementById('rec-dow').value)||0,
+    hour_of_day:   parseInt(document.getElementById('rec-hour').value)||0,
+    category_id:   document.getElementById('rec-category').value || null,
+    auto_insurance: document.getElementById('rec-auto-ins').checked ? 1 : 0,
+    note:          document.getElementById('rec-note').value,
+  };
+
+  try {
+    const method = id ? 'PUT' : 'POST';
+    const url    = id ? `/finance/recurring/${id}` : '/finance/recurring/';
+    const res    = await apiFetch(url, { method, body: JSON.stringify(body) });
+    const data   = await res.json();
+    if (!data.success) { alert(data.message || '儲存失敗'); return; }
+    bootstrap.Modal.getInstance(document.getElementById('recurringModal')).hide();
+    loadRecurringList();
+  } catch(e) { alert(e.message); }
+}
+
+async function editRecurring(id) {
+  const res  = await apiFetch(`/finance/recurring/${id}`);
+  const data = await res.json();
+  if (data.success) openRecurringModal(data.data);
+}
+
+async function deleteRecurring(id, name) {
+  if (!confirm(`確定刪除「${name}」？`)) return;
+  const res  = await apiFetch(`/finance/recurring/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) loadRecurringList();
+  else alert(data.message);
+}
+
+async function toggleRecurring(id) {
+  await apiFetch(`/finance/recurring/${id}/toggle`, { method: 'POST' });
+  loadRecurringList();
+}
+
+async function triggerOne(id) {
+  if (!confirm('確定立即產生這筆收入（含對應保費）？')) return;
+  const res  = await apiFetch(`/finance/recurring/${id}/trigger`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    const r = data.result;
+    alert(`產生成功：\n收入 ${formatMoney(r.income_amount)} 元${r.insurance_generated ? '\n已產生保費扣除' : ''}`);
+    loadRecurringList();
+    if (currentTab === 'transactions') loadTransactions(1);
+  } else alert(data.message);
+}
+
+async function triggerAllDue() {
+  if (!confirm('確定產生所有到期的固定收入？')) return;
+  const res  = await apiFetch('/finance/recurring/trigger-all', { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    alert(`完成！共產生 ${data.triggered} 筆收入`);
+    loadRecurringList();
+  } else alert(data.message);
+}
+
+// ── 勞健保 ──────────────────────────────
+async function loadInsuranceSettings() {
+  try {
+    const res  = await apiFetch('/finance/recurring/insurance');
+    const data = await res.json();
+    if (data.success && data.data) {
+      const d = data.data;
+      document.getElementById('ins-id').value           = d.id || '';
+      document.getElementById('ins-salary').value       = d.monthly_salary || '';
+      document.getElementById('ins-labor-salary').value = d.labor_insured_salary || '';
+      document.getElementById('ins-health-salary').value= d.health_insured_salary || '';
+      document.getElementById('ins-labor-rate').value   = d.labor_rate || 2.4;
+      document.getElementById('ins-health-rate').value  = d.health_rate || 5.17;
+      document.getElementById('ins-health-ratio').value = d.health_employee_ratio || 0.30;
+      document.getElementById('ins-dependents').value   = d.dependents || 0;
+      document.getElementById('ins-pension-rate').value = d.labor_pension_rate || 0;
+      document.getElementById('ins-note').value         = d.note || '';
+      calcInsuranceLive();
+    }
+  } catch(e) { console.warn('loadInsuranceSettings error', e); }
+}
+
+async function calcInsuranceLive() {
+  const salary = parseFloat(document.getElementById('ins-salary').value);
+  if (!salary || salary <= 0) {
+    document.getElementById('ins-result-wrap').innerHTML =
+      '<p class="text-muted text-center small mt-4">請輸入月薪以查看試算</p>';
+    return;
+  }
+  const params = new URLSearchParams({
+    salary,
+    labor_rate:           document.getElementById('ins-labor-rate').value,
+    health_rate:          document.getElementById('ins-health-rate').value,
+    health_employee_ratio:document.getElementById('ins-health-ratio').value,
+    dependents:           document.getElementById('ins-dependents').value,
+    labor_pension_rate:   document.getElementById('ins-pension-rate').value,
+  });
+  const ls = document.getElementById('ins-labor-salary').value;
+  const hs = document.getElementById('ins-health-salary').value;
+  if (ls) params.append('labor_insured_salary', ls);
+  if (hs) params.append('health_insured_salary', hs);
+  try {
+    const res  = await apiFetch(`/finance/recurring/insurance/calculate?${params}`);
+    const data = await res.json();
+    if (!data.success) return;
+    const r = data.result;
+    document.getElementById('ins-result-wrap').innerHTML = `
+      <table class="table table-sm mb-2">
+        <tr><td>月薪</td><td class="text-end fw-bold text-success">${formatMoney(r.monthly_salary)}</td></tr>
+        <tr class="table-light"><td colspan="2" class="small text-muted">扣除項目</td></tr>
+        <tr><td>勞保（投保 ${formatMoney(r.labor_insured_salary)}）</td>
+            <td class="text-end text-danger">－${formatMoney(r.labor_amount)}</td></tr>
+        <tr><td>健保（投保 ${formatMoney(r.health_insured_salary)}，眷屬 ${r.dependents} 人）</td>
+            <td class="text-end text-danger">－${formatMoney(r.health_amount)}</td></tr>
+        ${r.pension_amount > 0
+          ? `<tr><td>勞退自提（${r.labor_pension_rate}%）</td>
+                 <td class="text-end text-warning">－${formatMoney(r.pension_amount)}</td></tr>`
+          : ''}
+        <tr class="fw-bold border-top"><td>實拿薪資</td>
+            <td class="text-end text-primary fs-5">${formatMoney(r.net_income)}</td></tr>
+      </table>
+      <p class="text-muted" style="font-size:.75rem">
+        ※ 費率僅供試算，實際金額以薪資單為準。勞保費率 ${r.labor_rate}%（員工負擔），健保費率 ${r.health_rate}%×${(r.health_employee_ratio*100).toFixed(0)}%。
+      </p>`;
+  } catch(e) { console.warn(e); }
+}
+
+async function saveInsurance() {
+  const salary = parseFloat(document.getElementById('ins-salary').value);
+  if (!salary || salary <= 0) { alert('請輸入月薪'); return; }
+  const body = {
+    id:                    document.getElementById('ins-id').value || undefined,
+    monthly_salary:        salary,
+    labor_insured_salary:  parseFloat(document.getElementById('ins-labor-salary').value) || null,
+    labor_rate:            parseFloat(document.getElementById('ins-labor-rate').value),
+    health_insured_salary: parseFloat(document.getElementById('ins-health-salary').value) || null,
+    health_rate:           parseFloat(document.getElementById('ins-health-rate').value),
+    health_employee_ratio: parseFloat(document.getElementById('ins-health-ratio').value),
+    dependents:            parseInt(document.getElementById('ins-dependents').value)||0,
+    labor_pension_rate:    parseFloat(document.getElementById('ins-pension-rate').value)||0,
+    note:                  document.getElementById('ins-note').value,
+  };
+  const res  = await apiFetch('/finance/recurring/insurance', { method: 'POST', body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('ins-id').value = data.id;
+    alert('設定已儲存');
+  } else alert(data.message);
+}
+
+// ════════════════════════════════════
+// 用戶管理（管理者）& 個人帳號設定
+// ════════════════════════════════════
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+  try {
+    const res  = await apiFetch('/user/');
+    if (!res) return;
+    const data = await res.json();
+    if (!data.success) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">${data.message}</td></tr>`;
+      return;
+    }
+    if (!data.data.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">尚無使用者</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.data.map(u => {
+      const myId = localStorage.getItem(USER_ID_KEY);
+      const isMe = String(u.id) === String(myId);
+      return `
+      <tr>
+        <td class="text-muted small">${u.id}</td>
+        <td>
+          <strong>${u.username}</strong>
+          ${isMe ? '<span class="badge bg-info ms-1" style="font-size:.65rem">我</span>' : ''}
+        </td>
+        <td>${u.display_name || '<span class="text-muted">—</span>'}</td>
+        <td class="small text-muted">${u.email || '—'}</td>
+        <td>
+          <span class="badge ${u.role==='admin' ? 'bg-warning text-dark' : 'bg-secondary'}">
+            ${u.role==='admin' ? '管理員' : '一般'}
+          </span>
+        </td>
+        <td>
+          <span class="badge ${u.is_active ? 'bg-success' : 'bg-danger'}">
+            ${u.is_active ? '啟用' : '停用'}
+          </span>
+        </td>
+        <td class="small text-muted">${u.last_login_at ? u.last_login_at.slice(0,16) : '—'}</td>
+        <td>
+          <button class="btn btn-xs btn-sm btn-outline-secondary py-0 px-1 me-1"
+                  onclick="editUser(${u.id})" title="編輯">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-xs btn-sm btn-outline-${u.is_active?'warning':'success'} py-0 px-1 me-1"
+                  onclick="toggleUserActive(${u.id})" title="${u.is_active?'停用':'啟用'}"
+                  ${isMe ? 'disabled' : ''}>
+            <i class="bi bi-${u.is_active ? 'pause-circle' : 'play-circle'}"></i>
+          </button>
+          <button class="btn btn-xs btn-sm btn-outline-danger py-0 px-1"
+                  onclick="deleteUser(${u.id},'${u.username}')"
+                  ${isMe ? 'disabled' : ''} title="刪除">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">${e.message}</td></tr>`;
+  }
+}
+
+function openUserModal(data = null) {
+  document.getElementById('userModalTitle').textContent  = data ? '編輯使用者' : '新增使用者';
+  document.getElementById('um-id').value                 = data ? data.id : '';
+  document.getElementById('um-username').value           = data ? data.username : '';
+  document.getElementById('um-username').disabled        = !!data;  // 帳號建立後不可修改
+  document.getElementById('um-password').value           = '';
+  document.getElementById('um-display-name').value       = data ? (data.display_name||'') : '';
+  document.getElementById('um-email').value              = data ? (data.email||'') : '';
+  document.getElementById('um-role').value               = data ? data.role : 'user';
+  document.getElementById('um-pw-hint').textContent      = data ? '（留空則保持不變）' : '（至少 6 碼）';
+  new bootstrap.Modal(document.getElementById('userModal')).show();
+}
+
+async function editUser(id) {
+  const res  = await apiFetch(`/user/${id}`);
+  if (!res) return;
+  const data = await res.json();
+  if (data.success) openUserModal(data.data);
+  else alert(data.message);
+}
+
+async function saveUser() {
+  const id          = document.getElementById('um-id').value;
+  const username    = document.getElementById('um-username').value.trim();
+  const password    = document.getElementById('um-password').value;
+  const displayName = document.getElementById('um-display-name').value.trim();
+  const email       = document.getElementById('um-email').value.trim();
+  const role        = document.getElementById('um-role').value;
+
+  if (!id && (!username || !password)) { alert('帳號和密碼為必填'); return; }
+  if (!id && password.length < 6)      { alert('密碼長度至少 6 碼'); return; }
+  if (id  && password && password.length < 6) { alert('新密碼長度至少 6 碼'); return; }
+
+  const body = { display_name: displayName, email, role };
+  if (!id)           { body.username = username; body.password = password; }
+  if (id && password) body.password  = password;
+
+  const method = id ? 'PUT' : 'POST';
+  const url    = id ? `/user/${id}` : '/user/';
+  const res    = await apiFetch(url, { method, body: JSON.stringify(body) });
+  if (!res) return;
+  const data   = await res.json();
+  if (data.success) {
+    bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+    loadUsers();
+  } else alert(data.message);
+}
+
+async function toggleUserActive(id) {
+  const res  = await apiFetch(`/user/${id}/toggle-active`, { method: 'POST' });
+  if (!res) return;
+  const data = await res.json();
+  if (data.success) loadUsers();
+  else alert(data.message);
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`確定刪除使用者「${username}」？\n⚠️ 此操作無法復原，該使用者的財務資料將一併失去存取權！`)) return;
+  const res  = await apiFetch(`/user/${id}`, { method: 'DELETE' });
+  if (!res) return;
+  const data = await res.json();
+  if (data.success) loadUsers();
+  else alert(data.message);
+}
+
+// ── 個人帳號設定 ──────────────────────────────────────
+async function loadMyProfile() {
+  try {
+    const res  = await apiFetch('/auth/me');
+    if (!res) return;
+    const data = await res.json();
+    if (data.success) {
+      const dn = document.getElementById('my-display-name');
+      const em = document.getElementById('my-email');
+      if (dn) dn.value = data.display_name || '';
+      if (em) em.value = data.email || '';
+    }
+  } catch(e) {}
+}
+
+async function saveProfile() {
+  const displayName = (document.getElementById('my-display-name')?.value || '').trim();
+  const email       = (document.getElementById('my-email')?.value       || '').trim();
+  const res  = await apiFetch('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify({ display_name: displayName, email }),
+  });
+  if (!res) return;
+  const data = await res.json();
+  if (data.success) {
+    localStorage.setItem(DISPLAY_NAME_KEY, displayName);
+    updateUserInfo();
+    alert('個人資料已更新');
+  } else alert(data.message);
+}
+
+async function changeMyPassword() {
+  const oldPw = document.getElementById('my-old-pw')?.value || '';
+  const newPw = document.getElementById('my-new-pw')?.value || '';
+  if (!oldPw || !newPw) { alert('請填寫舊密碼與新密碼'); return; }
+  if (newPw.length < 6) { alert('新密碼長度至少 6 碼'); return; }
+  const res  = await apiFetch('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ old_password: oldPw, new_password: newPw }),
+  });
+  if (!res) return;
+  const data = await res.json();
+  if (data.success) {
+    alert('密碼已修改，請重新登入');
+    doLogout();
+  } else alert(data.message);
+}
+
+// ════════════════════════════════════
+// 元大證券匯入
+// ════════════════════════════════════
+function openYuantaModal() {
+  // 預設日期：本月起始 ~ 今日
+  const now = new Date();
+  const y   = now.getFullYear();
+  const m   = String(now.getMonth() + 1).padStart(2, '0');
+  const d   = String(now.getDate()).padStart(2, '0');
+  document.getElementById('yuanta-from').value = `${y}-${m}-01`;
+  document.getElementById('yuanta-to').value   = `${y}-${m}-${d}`;
+
+  // 重置狀態
+  _yuantaResetStatus();
+  new bootstrap.Modal(document.getElementById('yuantaModal')).show();
+}
+
+function _yuantaResetStatus() {
+  ['yuanta-status','yuanta-loading','yuanta-preview-wrap','yuanta-sync-result'].forEach(id => {
+    document.getElementById(id).classList.add('d-none');
+  });
+  document.getElementById('yuanta-alert').className = 'alert mb-2';
+  document.getElementById('yuanta-alert').textContent = '';
+  document.getElementById('btn-yuanta-preview').disabled = false;
+  document.getElementById('btn-yuanta-sync').disabled    = false;
+}
+
+function _yuantaShowLoading(msg) {
+  document.getElementById('yuanta-loading-msg').textContent = msg;
+  document.getElementById('yuanta-loading').classList.remove('d-none');
+  document.getElementById('yuanta-status').classList.add('d-none');
+  document.getElementById('btn-yuanta-preview').disabled = true;
+  document.getElementById('btn-yuanta-sync').disabled    = true;
+}
+
+function _yuantaHideLoading() {
+  document.getElementById('yuanta-loading').classList.add('d-none');
+  document.getElementById('btn-yuanta-preview').disabled = false;
+  document.getElementById('btn-yuanta-sync').disabled    = false;
+}
+
+function _yuantaShowAlert(msg, type = 'danger') {
+  const el = document.getElementById('yuanta-alert');
+  el.className = `alert alert-${type} mb-2`;
+  el.textContent = msg;
+  document.getElementById('yuanta-status').classList.remove('d-none');
+}
+
+async function yuantaPreview() {
+  const dateFrom = document.getElementById('yuanta-from').value;
+  const dateTo   = document.getElementById('yuanta-to').value;
+  if (!dateFrom || !dateTo) { _yuantaShowAlert('請輸入起始與結束日期'); return; }
+
+  _yuantaShowLoading('正在從元大 API 取得資料…');
+  try {
+    const res  = await apiFetch('/finance/yuanta/preview', {
+      method: 'POST',
+      body: JSON.stringify({ date_from: dateFrom, date_to: dateTo }),
+    });
+    const data = await res.json();
+    _yuantaHideLoading();
+
+    if (!data.success) { _yuantaShowAlert(data.message || '預覽失敗'); return; }
+
+    // 顯示結果
+    document.getElementById('yuanta-preview-count').textContent = data.count;
+    const tbody = document.getElementById('yuanta-preview-tbody');
+    if (data.count === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">查無資料</td></tr>';
+    } else {
+      const actionLabel = { buy:'買入', sell:'賣出', dividend:'股利' };
+      tbody.innerHTML = data.data.map(t => `
+        <tr>
+          <td>${t.date}</td>
+          <td><strong>${t.ticker}</strong></td>
+          <td>${t.company_name || ''}</td>
+          <td><span class="badge ${t.action==='buy'?'bg-success':t.action==='sell'?'bg-danger':'bg-info'}">${actionLabel[t.action]||t.action}</span></td>
+          <td class="text-end">${(+t.shares).toLocaleString()}</td>
+          <td class="text-end">${(+t.price).toLocaleString()}</td>
+          <td class="text-end">${formatMoney(t.amount)}</td>
+          <td class="text-end">${formatMoney(t.fee)}</td>
+        </tr>`).join('');
+    }
+
+    document.getElementById('yuanta-preview-wrap').classList.remove('d-none');
+    document.getElementById('yuanta-sync-result').classList.add('d-none');
+    _yuantaShowAlert(`預覽完成，共 ${data.count} 筆（尚未寫入資料庫）`, 'info');
+  } catch (e) {
+    _yuantaHideLoading();
+    _yuantaShowAlert('預覽請求失敗：' + e.message);
+  }
+}
+
+async function yuantaSync() {
+  const dateFrom    = document.getElementById('yuanta-from').value;
+  const dateTo      = document.getElementById('yuanta-to').value;
+  const skipDup     = document.getElementById('yuanta-skip-dup').checked;
+  if (!dateFrom || !dateTo) { _yuantaShowAlert('請輸入起始與結束日期'); return; }
+
+  if (!confirm(`確定要匯入 ${dateFrom} ~ ${dateTo} 的元大交易明細？`)) return;
+
+  _yuantaShowLoading('正在匯入資料，請稍候…');
+  try {
+    const res  = await apiFetch('/finance/yuanta/sync', {
+      method: 'POST',
+      body: JSON.stringify({ date_from: dateFrom, date_to: dateTo, skip_duplicate: skipDup }),
+    });
+    const data = await res.json();
+    _yuantaHideLoading();
+
+    if (!data.success) { _yuantaShowAlert(data.message || '匯入失敗'); return; }
+
+    // 顯示同步結果統計
+    document.getElementById('ys-fetched').textContent  = data.fetched;
+    document.getElementById('ys-inserted').textContent = data.inserted;
+    document.getElementById('ys-skipped').textContent  = data.skipped;
+    document.getElementById('ys-errors').textContent   = data.errors ? data.errors.length : 0;
+
+    document.getElementById('yuanta-preview-wrap').classList.add('d-none');
+    document.getElementById('yuanta-sync-result').classList.remove('d-none');
+
+    const errCount = data.errors ? data.errors.length : 0;
+    const alertType = errCount > 0 ? 'warning' : 'success';
+    _yuantaShowAlert(
+      `匯入完成：取得 ${data.fetched} 筆，寫入 ${data.inserted} 筆，跳過 ${data.skipped} 筆${errCount>0?'，失敗 '+errCount+' 筆':''}`,
+      alertType
+    );
+
+    // 匯入成功後自動刷新股票記錄
+    if (data.inserted > 0) loadStockRecords(1);
+  } catch (e) {
+    _yuantaHideLoading();
+    _yuantaShowAlert('匯入請求失敗：' + e.message);
+  }
+}
+
+// ════════════════════════════════════
 // 分類管理
 // ════════════════════════════════════
 function renderCategories() {
@@ -1754,7 +2935,193 @@ async function loadReports() {
 }
 
 // ════════════════════════════════════
-// 資料匯出
+// 匯入 / 匯出
+// ════════════════════════════════════
+
+// ── IO 子頁籤切換 ──────────────────────────
+function switchIOTab(tab) {
+  ['export','import'].forEach(t => {
+    document.getElementById(`iotab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`iotab-content-${t}`).classList.toggle('d-none', t !== tab);
+  });
+}
+
+// ── 欄位說明切換 ──────────────────────────
+function onImportTypeChange() {
+  const type = document.getElementById('imp-type').value;
+  document.getElementById('imp-cols-tx').classList.toggle('d-none', type !== 'transactions');
+  document.getElementById('imp-cols-sk').classList.toggle('d-none', type !== 'stocks');
+  resetImport();
+}
+
+// ── 下載範本 ──────────────────────────────
+function downloadTemplate() {
+  const type  = document.getElementById('imp-type').value;
+  const token = getToken();
+  fetch(`/finance/report/import-template?type=${type}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }).then(res => {
+    if (!res.ok) { showToast('下載範本失敗', 'danger'); return; }
+    return res.blob().then(blob => {
+      const a = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = `import_${type}_template.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  }).catch(() => showToast('下載失敗', 'danger'));
+}
+
+// ── 拖放上傳 ──────────────────────────────
+function impDragOver(e) {
+  e.preventDefault();
+  document.getElementById('imp-dropzone').style.background = '#eef2ff';
+}
+function impDragLeave(e) {
+  document.getElementById('imp-dropzone').style.background = '';
+}
+function impDrop(e) {
+  e.preventDefault();
+  impDragLeave(e);
+  const files = e.dataTransfer.files;
+  if (files.length) handleImportFile(files[0]);
+}
+function onImportFileSelect(e) {
+  if (e.target.files.length) handleImportFile(e.target.files[0]);
+}
+
+// ── 解析並預覽 ────────────────────────────
+let _impFile = null;
+let _impParsedRows = [];
+
+function handleImportFile(file) {
+  _impFile = file;
+  const nameEl = document.getElementById('imp-file-name');
+  nameEl.textContent = `📎 ${file.name}（${(file.size/1024).toFixed(1)} KB）`;
+  nameEl.classList.remove('d-none');
+
+  // 客戶端預覽（僅 CSV；xlsx 交給後端）
+  _impParsedRows = [];
+  const fname = file.name.toLowerCase();
+  if (fname.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      let text = e.target.result;
+      // 去 BOM
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) { showToast('CSV 內容為空', 'warning'); return; }
+      const headers = lines[0].split(',').map(h => h.trim());
+      _impParsedRows = lines.slice(1).map(line => {
+        const vals = line.split(',');
+        const row = {};
+        headers.forEach((h, i) => row[h] = (vals[i] || '').trim());
+        return row;
+      });
+      renderImportPreview(headers, _impParsedRows);
+    };
+    reader.readAsText(file, 'utf-8');
+  } else {
+    // Excel：無法客戶端預覽，顯示提示
+    document.getElementById('imp-preview-wrap').classList.add('d-none');
+    document.getElementById('imp-preview-count').textContent = 'Excel 檔案上傳後由後端解析';
+    document.getElementById('imp-preview-wrap').classList.remove('d-none');
+    document.getElementById('imp-preview-head').innerHTML = '';
+    document.getElementById('imp-preview-body').innerHTML =
+      '<tr><td class="text-center text-muted py-3" colspan="99">Excel 預覽需上傳後由後端解析，請直接點「開始匯入」</td></tr>';
+    document.getElementById('btn-do-import').disabled = false;
+  }
+}
+
+function renderImportPreview(headers, rows) {
+  const wrap   = document.getElementById('imp-preview-wrap');
+  const head   = document.getElementById('imp-preview-head');
+  const body   = document.getElementById('imp-preview-body');
+  const count  = document.getElementById('imp-preview-count');
+  const btnImp = document.getElementById('btn-do-import');
+
+  head.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+  const preview  = rows.slice(0, 5);
+  body.innerHTML = preview.map(r =>
+    '<tr>' + headers.map(h => `<td>${r[h] || ''}</td>`).join('') + '</tr>'
+  ).join('');
+  count.textContent = `共 ${rows.length} 筆`;
+  wrap.classList.remove('d-none');
+  btnImp.disabled = rows.length === 0;
+  resetImportResult();
+}
+
+// ── 執行匯入 ──────────────────────────────
+async function doImport() {
+  if (!_impFile) { showToast('請先選擇檔案', 'warning'); return; }
+  const type    = document.getElementById('imp-type').value;
+  const skipDup = document.getElementById('imp-skip-dup').value;
+  const btn     = document.getElementById('btn-do-import');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>匯入中…';
+  resetImportResult();
+
+  const fd = new FormData();
+  fd.append('file', _impFile);
+  fd.append('type', type);
+  fd.append('skip_duplicate', skipDup);
+
+  try {
+    const res  = await fetch('/finance/report/import', {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body:    fd,
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || '匯入失敗');
+    showImportResult(data);
+    showToast(`匯入完成：寫入 ${data.inserted} 筆，跳過 ${data.skipped} 筆`, 'success');
+  } catch(e) {
+    showToast(`匯入失敗：${e.message}`, 'danger');
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>開始匯入';
+  }
+}
+
+function showImportResult(d) {
+  document.getElementById('imp-result').classList.remove('d-none');
+  document.getElementById('imp-r-fetched').textContent   = `📥 讀取 ${d.fetched} 筆`;
+  document.getElementById('imp-r-inserted').textContent  = `✅ 寫入 ${d.inserted} 筆`;
+  document.getElementById('imp-r-skipped').textContent   = `⏭ 跳過 ${d.skipped} 筆`;
+
+  const errBadge = document.getElementById('imp-r-errors');
+  const errList  = document.getElementById('imp-error-list');
+  const errTbody = document.getElementById('imp-error-tbody');
+
+  if (d.errors && d.errors.length) {
+    errBadge.textContent = `❌ 失敗 ${d.errors.length} 筆`;
+    errBadge.style.display = '';
+    errTbody.innerHTML = d.errors.map(e =>
+      `<tr><td>${e.row}</td><td>${e.message}</td><td><small>${JSON.stringify(e.data).slice(0,80)}</small></td></tr>`
+    ).join('');
+    errList.classList.remove('d-none');
+  } else {
+    errBadge.style.display = 'none!important';
+    errList.classList.add('d-none');
+  }
+}
+
+function resetImportResult() {
+  document.getElementById('imp-result').classList.add('d-none');
+  document.getElementById('imp-error-list').classList.add('d-none');
+}
+
+function resetImport() {
+  _impFile = null;
+  _impParsedRows = [];
+  document.getElementById('imp-file-input').value = '';
+  document.getElementById('imp-file-name').classList.add('d-none');
+  document.getElementById('imp-preview-wrap').classList.add('d-none');
+  document.getElementById('btn-do-import').disabled = true;
+  resetImportResult();
+}
+
 // ════════════════════════════════════
 function doExport(type, fmt) {
   const fromId = type === 'transactions' ? 'exp-tx-from' : 'exp-sk-from';

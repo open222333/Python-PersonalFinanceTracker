@@ -52,3 +52,9 @@ REDIS_HOST = config.get('REDIS', 'REDIS_HOST', fallback='localhost')
 REDIS_PORT = config.getint('REDIS', 'REDIS_PORT', fallback=6379)
 REDIS_PASSWORD = config.get('REDIS', 'REDIS_PASSWORD', fallback='')
 REDIS_DB = config.getint('REDIS', 'REDIS_DB', fallback=0)
+
+# 元大證券 API 參數
+YUANTA_ACCOUNT   = config.get('YUANTA', 'YUANTA_ACCOUNT',   fallback='')
+YUANTA_PASSWORD  = config.get('YUANTA', 'YUANTA_PASSWORD',  fallback='')
+YUANTA_ID_NUMBER = config.get('YUANTA', 'YUANTA_ID_NUMBER', fallback='')
+YUANTA_API_URL   = config.get('YUANTA', 'YUANTA_API_URL',   fallback='')

@@ -39,52 +39,71 @@ class Category:
 
     @classmethod
     def init_defaults(cls):
-        """初始化預設分類；若資料表已有資料則略過"""
+        """初始化預設分類（向後相容）；呼叫 init_defaults_for_user(1)"""
+        cls.init_defaults_for_user(1)
+
+    @classmethod
+    def init_defaults_for_user(cls, user_id: int):
+        """初始化指定使用者的預設分類；若該使用者已有分類則略過"""
         try:
-            rows = query('SELECT COUNT(*) AS cnt FROM finance_categories')
+            rows = query(
+                'SELECT COUNT(*) AS cnt FROM finance_categories WHERE user_id=%s',
+                (user_id,)
+            )
             if rows and rows[0]['cnt'] > 0:
                 return
             for row in cls._DEFAULT_EXPENSE + cls._DEFAULT_INCOME:
+                name, type_, color, icon = row
                 execute(
-                    'INSERT INTO finance_categories (name, type, color, icon) VALUES (%s, %s, %s, %s)',
-                    row
+                    'INSERT INTO finance_categories (name, type, color, icon, user_id) VALUES (%s, %s, %s, %s, %s)',
+                    (name, type_, color, icon, user_id)
                 )
-            print('[init] 已插入預設財務分類')
+            print(f'[init] 已為 user_id={user_id} 插入預設財務分類')
         except Exception as e:
             print(f'[init] 插入預設分類失敗：{e}')
 
     @staticmethod
-    def find_all(type_filter: str = None) -> list:
-        """查詢所有分類，可按 type 篩選"""
+    def find_all(type_filter: str = None, user_id: int = None) -> list:
+        """查詢所有分類，可按 type 與 user_id 篩選；user_id 為 None 時不過濾使用者"""
+        conditions, params = [], []
+
         if type_filter in ('income', 'expense'):
-            return query(
-                'SELECT * FROM finance_categories WHERE type=%s ORDER BY id',
-                (type_filter,)
-            )
-        return query('SELECT * FROM finance_categories ORDER BY type, id')
+            conditions.append('type=%s')
+            params.append(type_filter)
+        if user_id is not None:
+            conditions.append('user_id=%s')
+            params.append(user_id)
+
+        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+        return query(f'SELECT * FROM finance_categories {where} ORDER BY type, id', params)
 
     @staticmethod
-    def find_by_id(cat_id: int) -> dict:
-        """依 ID 查詢單筆分類"""
-        rows = query('SELECT * FROM finance_categories WHERE id=%s', (cat_id,))
+    def find_by_id(cat_id: int, user_id: int = None) -> dict:
+        """依 ID 查詢單筆分類；若提供 user_id 則同時驗證擁有權"""
+        if user_id is not None:
+            rows = query(
+                'SELECT * FROM finance_categories WHERE id=%s AND user_id=%s',
+                (cat_id, user_id)
+            )
+        else:
+            rows = query('SELECT * FROM finance_categories WHERE id=%s', (cat_id,))
         return rows[0] if rows else None
 
     @staticmethod
-    def create(name: str, type_: str, color: str = '#808080', icon: str = 'bi-tag') -> int:
+    def create(name: str, type_: str, color: str = '#808080', icon: str = 'bi-tag',
+               user_id: int = None) -> int:
         """新增分類，回傳新增 ID"""
-        conn_rows = query(
-            'SELECT LAST_INSERT_ID() AS id FROM finance_categories WHERE 1=0'
-        )  # 取最後插入 ID 需另想辦法
         execute(
-            'INSERT INTO finance_categories (name, type, color, icon) VALUES (%s, %s, %s, %s)',
-            (name, type_, color, icon)
+            'INSERT INTO finance_categories (name, type, color, icon, user_id) VALUES (%s, %s, %s, %s, %s)',
+            (name, type_, color, icon, user_id)
         )
         rows = query('SELECT LAST_INSERT_ID() AS id')
         return rows[0]['id'] if rows else None
 
     @staticmethod
-    def update(cat_id: int, name: str = None, color: str = None, icon: str = None) -> bool:
-        """更新分類（僅更新有傳入的欄位）"""
+    def update(cat_id: int, user_id: int, name: str = None, color: str = None,
+               icon: str = None) -> bool:
+        """更新分類（僅更新有傳入的欄位），同時驗證 user_id 擁有權"""
         fields, params = [], []
         if name  is not None:
             fields.append('name=%s');  params.append(name)
@@ -94,13 +113,19 @@ class Category:
             fields.append('icon=%s');  params.append(icon)
         if not fields:
             return False
-        params.append(cat_id)
-        return execute(f'UPDATE finance_categories SET {", ".join(fields)} WHERE id=%s', params) > 0
+        params += [cat_id, user_id]
+        return execute(
+            f'UPDATE finance_categories SET {", ".join(fields)} WHERE id=%s AND user_id=%s',
+            params
+        ) > 0
 
     @staticmethod
-    def delete(cat_id: int) -> bool:
-        """刪除分類"""
-        return execute('DELETE FROM finance_categories WHERE id=%s', (cat_id,)) > 0
+    def delete(cat_id: int, user_id: int) -> bool:
+        """刪除分類，同時驗證 user_id 擁有權"""
+        return execute(
+            'DELETE FROM finance_categories WHERE id=%s AND user_id=%s',
+            (cat_id, user_id)
+        ) > 0
 
 
 # ─────────────────────────────────────────────
@@ -111,13 +136,15 @@ class Transaction:
 
     @staticmethod
     def find(date_from=None, date_to=None, type_=None, category_id=None,
-             keyword=None, limit=20, offset=0) -> tuple:
+             keyword=None, limit=20, offset=0, user_id: int = None) -> tuple:
         """
         多條件查詢收支記錄
         回傳 (list[dict], total_count)
         """
         conditions, params = [], []
 
+        if user_id is not None:
+            conditions.append('t.user_id = %s'); params.append(user_id)
         if date_from:
             conditions.append('t.date >= %s'); params.append(date_from)
         if date_to:
@@ -150,25 +177,32 @@ class Transaction:
         return rows, total
 
     @staticmethod
-    def find_by_id(tx_id: int) -> dict:
-        rows = query('SELECT * FROM finance_transactions WHERE id=%s', (tx_id,))
+    def find_by_id(tx_id: int, user_id: int = None) -> dict:
+        """依 ID 查詢單筆記錄；若提供 user_id 則同時驗證擁有權"""
+        if user_id is not None:
+            rows = query(
+                'SELECT * FROM finance_transactions WHERE id=%s AND user_id=%s',
+                (tx_id, user_id)
+            )
+        else:
+            rows = query('SELECT * FROM finance_transactions WHERE id=%s', (tx_id,))
         return rows[0] if rows else None
 
     @staticmethod
     def create(date: str, type_: str, amount: float, category_id=None,
-               description: str = '', note: str = '') -> int:
+               description: str = '', note: str = '', user_id: int = None) -> int:
         """新增收支記錄，回傳新增 ID"""
         execute(
-            '''INSERT INTO finance_transactions (date, type, amount, category_id, description, note)
-               VALUES (%s, %s, %s, %s, %s, %s)''',
-            (date, type_, amount, category_id or None, description, note)
+            '''INSERT INTO finance_transactions (date, type, amount, category_id, description, note, user_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)''',
+            (date, type_, amount, category_id or None, description, note, user_id)
         )
         rows = query('SELECT LAST_INSERT_ID() AS id')
         return rows[0]['id'] if rows else None
 
     @staticmethod
-    def update(tx_id: int, **kwargs) -> bool:
-        """更新收支記錄"""
+    def update(tx_id: int, user_id: int = None, **kwargs) -> bool:
+        """更新收支記錄，若提供 user_id 則同時驗證擁有權"""
         allowed = {'date', 'type', 'amount', 'category_id', 'description', 'note'}
         fields, params = [], []
         for k, v in kwargs.items():
@@ -177,24 +211,49 @@ class Transaction:
                 params.append(v)
         if not fields:
             return False
+        if user_id is not None:
+            params += [tx_id, user_id]
+            return execute(
+                f'UPDATE finance_transactions SET {", ".join(fields)} WHERE id=%s AND user_id=%s',
+                params
+            ) > 0
         params.append(tx_id)
-        return execute(f'UPDATE finance_transactions SET {", ".join(fields)} WHERE id=%s', params) > 0
+        return execute(
+            f'UPDATE finance_transactions SET {", ".join(fields)} WHERE id=%s',
+            params
+        ) > 0
 
     @staticmethod
-    def delete(tx_id: int) -> bool:
+    def delete(tx_id: int, user_id: int = None) -> bool:
+        """刪除收支記錄，若提供 user_id 則同時驗證擁有權"""
+        if user_id is not None:
+            return execute(
+                'DELETE FROM finance_transactions WHERE id=%s AND user_id=%s',
+                (tx_id, user_id)
+            ) > 0
         return execute('DELETE FROM finance_transactions WHERE id=%s', (tx_id,)) > 0
 
     @staticmethod
-    def monthly_summary(year: int, month: int) -> dict:
-        """計算指定年月的收入、支出、淨額"""
-        sql = '''
-            SELECT
-                COALESCE(SUM(CASE WHEN type='income'  THEN amount ELSE 0 END), 0) AS income,
-                COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0) AS expense
-            FROM finance_transactions
-            WHERE YEAR(date)=%s AND MONTH(date)=%s
-        '''
-        rows = query(sql, (year, month))
+    def monthly_summary(year: int, month: int, user_id: int = None) -> dict:
+        """計算指定年月（及使用者）的收入、支出、淨額"""
+        if user_id is not None:
+            sql = '''
+                SELECT
+                    COALESCE(SUM(CASE WHEN type='income'  THEN amount ELSE 0 END), 0) AS income,
+                    COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0) AS expense
+                FROM finance_transactions
+                WHERE YEAR(date)=%s AND MONTH(date)=%s AND user_id=%s
+            '''
+            rows = query(sql, (year, month, user_id))
+        else:
+            sql = '''
+                SELECT
+                    COALESCE(SUM(CASE WHEN type='income'  THEN amount ELSE 0 END), 0) AS income,
+                    COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0) AS expense
+                FROM finance_transactions
+                WHERE YEAR(date)=%s AND MONTH(date)=%s
+            '''
+            rows = query(sql, (year, month))
         if rows:
             income  = float(rows[0]['income'])
             expense = float(rows[0]['expense'])
@@ -210,10 +269,12 @@ class Stock:
 
     @staticmethod
     def find(date_from=None, date_to=None, ticker=None, action=None,
-             limit=20, offset=0) -> tuple:
+             limit=20, offset=0, user_id: int = None) -> tuple:
         """多條件查詢股票交易，回傳 (list[dict], total)"""
         conditions, params = [], []
 
+        if user_id is not None:
+            conditions.append('user_id = %s'); params.append(user_id)
         if date_from:
             conditions.append('date >= %s'); params.append(date_from)
         if date_to:
@@ -233,27 +294,35 @@ class Stock:
         return rows, total
 
     @staticmethod
-    def find_by_id(stock_id: int) -> dict:
-        rows = query('SELECT * FROM finance_stocks WHERE id=%s', (stock_id,))
+    def find_by_id(stock_id: int, user_id: int = None) -> dict:
+        """依 ID 查詢單筆股票交易；若提供 user_id 則同時驗證擁有權"""
+        if user_id is not None:
+            rows = query(
+                'SELECT * FROM finance_stocks WHERE id=%s AND user_id=%s',
+                (stock_id, user_id)
+            )
+        else:
+            rows = query('SELECT * FROM finance_stocks WHERE id=%s', (stock_id,))
         return rows[0] if rows else None
 
     @staticmethod
     def create(date, ticker, company_name='', market='TW', action='buy',
-               shares=0, price=0, amount=0, fee=0, tax=0, note='') -> int:
+               shares=0, price=0, amount=0, fee=0, tax=0, note='',
+               user_id: int = None) -> int:
         """新增股票交易記錄"""
         execute(
             '''INSERT INTO finance_stocks
-               (date, ticker, company_name, market, action, shares, price, amount, fee, tax, note)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+               (date, ticker, company_name, market, action, shares, price, amount, fee, tax, note, user_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
             (date, ticker.upper(), company_name, market, action,
-             shares, price, amount, fee, tax, note)
+             shares, price, amount, fee, tax, note, user_id)
         )
         rows = query('SELECT LAST_INSERT_ID() AS id')
         return rows[0]['id'] if rows else None
 
     @staticmethod
-    def update(stock_id: int, **kwargs) -> bool:
-        """更新股票交易記錄"""
+    def update(stock_id: int, user_id: int = None, **kwargs) -> bool:
+        """更新股票交易記錄，若提供 user_id 則同時驗證擁有權"""
         allowed = {'date', 'ticker', 'company_name', 'market', 'action',
                    'shares', 'price', 'amount', 'fee', 'tax', 'note'}
         fields, params = [], []
@@ -263,15 +332,30 @@ class Stock:
                 params.append(v)
         if not fields:
             return False
+        if user_id is not None:
+            params += [stock_id, user_id]
+            return execute(
+                f'UPDATE finance_stocks SET {", ".join(fields)} WHERE id=%s AND user_id=%s',
+                params
+            ) > 0
         params.append(stock_id)
-        return execute(f'UPDATE finance_stocks SET {", ".join(fields)} WHERE id=%s', params) > 0
+        return execute(
+            f'UPDATE finance_stocks SET {", ".join(fields)} WHERE id=%s',
+            params
+        ) > 0
 
     @staticmethod
-    def delete(stock_id: int) -> bool:
+    def delete(stock_id: int, user_id: int = None) -> bool:
+        """刪除股票交易記錄，若提供 user_id 則同時驗證擁有權"""
+        if user_id is not None:
+            return execute(
+                'DELETE FROM finance_stocks WHERE id=%s AND user_id=%s',
+                (stock_id, user_id)
+            ) > 0
         return execute('DELETE FROM finance_stocks WHERE id=%s', (stock_id,)) > 0
 
     @staticmethod
-    def portfolio() -> list:
+    def portfolio(user_id: int) -> list:
         """
         計算各 ticker 持倉（買入股數 - 賣出股數 = 持有股數）
         及平均成本（買入總成本 / 總買入股數）
@@ -286,11 +370,11 @@ class Stock:
                 SUM(CASE WHEN action='buy'  THEN shares ELSE 0 END)  AS total_buy_shares,
                 SUM(CASE WHEN action='buy'  THEN amount + fee ELSE 0 END) AS total_buy_cost
             FROM finance_stocks
-            WHERE action IN ('buy', 'sell')
+            WHERE action IN ('buy', 'sell') AND user_id=%s
             GROUP BY ticker
             ORDER BY ticker
         '''
-        rows = query(sql)
+        rows = query(sql, (user_id,))
         result = []
         for r in rows:
             hold    = float(r['hold_shares']       or 0)
@@ -308,7 +392,7 @@ class Stock:
         return result
 
     @staticmethod
-    def pnl() -> list:
+    def pnl(user_id: int) -> list:
         """
         計算各 ticker 已實現損益
         已實現損益 = 賣出總金額 - (賣出股數 × 平均買入成本)
@@ -319,20 +403,20 @@ class Stock:
                    SUM(CASE WHEN action='buy' THEN amount + fee ELSE 0 END) AS total_cost,
                    SUM(CASE WHEN action='buy' THEN shares ELSE 0 END) AS total_buy_shares
             FROM finance_stocks
-            WHERE action IN ('buy', 'sell')
+            WHERE action IN ('buy', 'sell') AND user_id=%s
             GROUP BY ticker
         '''
-        cost_rows = {r['ticker']: r for r in query(cost_sql)}
+        cost_rows = {r['ticker']: r for r in query(cost_sql, (user_id,))}
 
         # 取賣出記錄
         sell_sql = '''
             SELECT ticker, SUM(amount) AS sell_amount, SUM(shares) AS sell_shares
             FROM finance_stocks
-            WHERE action='sell'
+            WHERE action='sell' AND user_id=%s
             GROUP BY ticker
         '''
         result = []
-        for r in query(sell_sql):
+        for r in query(sell_sql, (user_id,)):
             ticker     = r['ticker']
             sell_amt   = float(r['sell_amount']  or 0)
             sell_qty   = float(r['sell_shares']  or 0)
@@ -356,7 +440,7 @@ class Stock:
         return result
 
     @staticmethod
-    def dividend_summary() -> list:
+    def dividend_summary(user_id: int) -> list:
         """各 ticker 累計股利彙總"""
         sql = '''
             SELECT ticker,
@@ -364,11 +448,11 @@ class Stock:
                    SUM(amount) AS total_dividend,
                    COUNT(*) AS dividend_count
             FROM finance_stocks
-            WHERE action='dividend'
+            WHERE action='dividend' AND user_id=%s
             GROUP BY ticker
             ORDER BY total_dividend DESC
         '''
-        return query(sql)
+        return query(sql, (user_id,))
 
 
 # ─────────────────────────────────────────────
@@ -378,44 +462,54 @@ class Budget:
     """每月預算管理"""
 
     @staticmethod
-    def find(year: int, month: int) -> list:
-        """查詢指定年月的所有預算"""
+    def find(year: int, month: int, user_id: int) -> list:
+        """查詢指定使用者指定年月的所有預算"""
         sql = '''
             SELECT b.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
             FROM finance_budgets b
             JOIN finance_categories c ON b.category_id = c.id
-            WHERE b.year=%s AND b.month=%s
+            WHERE b.user_id=%s AND b.year=%s AND b.month=%s
             ORDER BY c.name
         '''
-        return query(sql, (year, month))
+        return query(sql, (user_id, year, month))
 
     @staticmethod
-    def find_by_id(budget_id: int) -> dict:
-        rows = query('SELECT * FROM finance_budgets WHERE id=%s', (budget_id,))
+    def find_by_id(budget_id: int, user_id: int) -> dict:
+        """依 ID 查詢單筆預算，同時驗證 user_id 擁有權"""
+        rows = query(
+            'SELECT * FROM finance_budgets WHERE id=%s AND user_id=%s',
+            (budget_id, user_id)
+        )
         return rows[0] if rows else None
 
     @staticmethod
-    def upsert(category_id: int, year: int, month: int, amount: float) -> None:
-        """INSERT ... ON DUPLICATE KEY UPDATE（設定或更新預算）"""
+    def upsert(category_id: int, year: int, month: int, amount: float, user_id: int) -> None:
+        """INSERT ... ON DUPLICATE KEY UPDATE（設定或更新預算），以 user_id+category_id+year+month 為唯一鍵"""
         execute(
-            '''INSERT INTO finance_budgets (category_id, year, month, amount)
-               VALUES (%s, %s, %s, %s)
+            '''INSERT INTO finance_budgets (user_id, category_id, year, month, amount)
+               VALUES (%s, %s, %s, %s, %s)
                ON DUPLICATE KEY UPDATE amount=%s''',
-            (category_id, year, month, amount, amount)
+            (user_id, category_id, year, month, amount, amount)
         )
 
     @staticmethod
-    def update(budget_id: int, amount: float) -> bool:
+    def update(budget_id: int, user_id: int, amount: float) -> bool:
+        """更新預算金額，同時驗證 user_id 擁有權"""
         return execute(
-            'UPDATE finance_budgets SET amount=%s WHERE id=%s', (amount, budget_id)
+            'UPDATE finance_budgets SET amount=%s WHERE id=%s AND user_id=%s',
+            (amount, budget_id, user_id)
         ) > 0
 
     @staticmethod
-    def delete(budget_id: int) -> bool:
-        return execute('DELETE FROM finance_budgets WHERE id=%s', (budget_id,)) > 0
+    def delete(budget_id: int, user_id: int) -> bool:
+        """刪除預算，同時驗證 user_id 擁有權"""
+        return execute(
+            'DELETE FROM finance_budgets WHERE id=%s AND user_id=%s',
+            (budget_id, user_id)
+        ) > 0
 
     @staticmethod
-    def status(year: int, month: int) -> list:
+    def status(year: int, month: int, user_id: int) -> list:
         """
         查詢各分類預算執行狀況
         回傳: category_name, budget_amount, actual_expense, remaining, usage_rate
@@ -431,6 +525,7 @@ class Budget:
                     (SELECT SUM(t.amount)
                      FROM finance_transactions t
                      WHERE t.category_id = b.category_id
+                       AND t.user_id = b.user_id
                        AND t.type = 'expense'
                        AND YEAR(t.date) = b.year
                        AND MONTH(t.date) = b.month),
@@ -438,10 +533,10 @@ class Budget:
                 ) AS actual_expense
             FROM finance_budgets b
             JOIN finance_categories c ON b.category_id = c.id
-            WHERE b.year=%s AND b.month=%s
+            WHERE b.user_id=%s AND b.year=%s AND b.month=%s
             ORDER BY c.name
         '''
-        rows = query(sql, (year, month))
+        rows = query(sql, (user_id, year, month))
         result = []
         for r in rows:
             budget_amt  = float(r['budget_amount']  or 0)
@@ -468,9 +563,9 @@ class Report:
     """報表查詢（月報、年報、分類統計）"""
 
     @staticmethod
-    def monthly(year: int, month: int) -> dict:
+    def monthly(year: int, month: int, user_id: int) -> dict:
         """月報：當月總收入、支出、淨額及各分類明細"""
-        summary = Transaction.monthly_summary(year, month)
+        summary = Transaction.monthly_summary(year, month, user_id)
 
         # 各分類支出明細
         cat_sql = '''
@@ -479,11 +574,11 @@ class Report:
                    COALESCE(SUM(t.amount), 0) AS total
             FROM finance_transactions t
             LEFT JOIN finance_categories c ON t.category_id = c.id
-            WHERE YEAR(t.date)=%s AND MONTH(t.date)=%s
+            WHERE t.user_id=%s AND YEAR(t.date)=%s AND MONTH(t.date)=%s
             GROUP BY t.category_id, t.type
             ORDER BY total DESC
         '''
-        details = query(cat_sql, (year, month))
+        details = query(cat_sql, (user_id, year, month))
 
         return {
             'year':    year,
@@ -493,7 +588,7 @@ class Report:
         }
 
     @staticmethod
-    def yearly(year: int) -> list:
+    def yearly(year: int, user_id: int) -> list:
         """年報：12個月收支趨勢"""
         sql = '''
             SELECT
@@ -501,11 +596,11 @@ class Report:
                 COALESCE(SUM(CASE WHEN type='income'  THEN amount ELSE 0 END), 0) AS income,
                 COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0) AS expense
             FROM finance_transactions
-            WHERE YEAR(date)=%s
+            WHERE YEAR(date)=%s AND user_id=%s
             GROUP BY MONTH(date)
             ORDER BY MONTH(date)
         '''
-        rows = query(sql, (year,))
+        rows = query(sql, (year, user_id))
         # 補齊 1~12 月
         data = {r['month']: r for r in rows}
         result = []
@@ -520,21 +615,34 @@ class Report:
         return result
 
     @staticmethod
-    def category_stats(date_from: str, date_to: str, type_: str = 'expense') -> list:
+    def category_stats(date_from: str, date_to: str, type_: str = 'expense',
+                       user_id: int = None) -> list:
         """
         分類統計：指定期間各分類金額及佔比
         type_: 'income' 或 'expense'
         """
-        sql = '''
-            SELECT c.name AS category_name, c.color, c.icon,
-                   COALESCE(SUM(t.amount), 0) AS total
-            FROM finance_transactions t
-            LEFT JOIN finance_categories c ON t.category_id = c.id
-            WHERE t.type=%s AND t.date BETWEEN %s AND %s
-            GROUP BY t.category_id
-            ORDER BY total DESC
-        '''
-        rows = query(sql, (type_, date_from, date_to))
+        if user_id is not None:
+            sql = '''
+                SELECT c.name AS category_name, c.color, c.icon,
+                       COALESCE(SUM(t.amount), 0) AS total
+                FROM finance_transactions t
+                LEFT JOIN finance_categories c ON t.category_id = c.id
+                WHERE t.type=%s AND t.date BETWEEN %s AND %s AND t.user_id=%s
+                GROUP BY t.category_id
+                ORDER BY total DESC
+            '''
+            rows = query(sql, (type_, date_from, date_to, user_id))
+        else:
+            sql = '''
+                SELECT c.name AS category_name, c.color, c.icon,
+                       COALESCE(SUM(t.amount), 0) AS total
+                FROM finance_transactions t
+                LEFT JOIN finance_categories c ON t.category_id = c.id
+                WHERE t.type=%s AND t.date BETWEEN %s AND %s
+                GROUP BY t.category_id
+                ORDER BY total DESC
+            '''
+            rows = query(sql, (type_, date_from, date_to))
         grand_total = sum(float(r['total']) for r in rows)
         result = []
         for r in rows:
@@ -549,7 +657,7 @@ class Report:
         return result
 
     @staticmethod
-    def dashboard(year: int, month: int) -> dict:
+    def dashboard(year: int, month: int, user_id: int) -> dict:
         """
         儀表板摘要：
         - 本月收支概況
@@ -558,20 +666,20 @@ class Report:
         - 最近5筆交易
         """
         # 本月收支
-        summary = Transaction.monthly_summary(year, month)
+        summary = Transaction.monthly_summary(year, month, user_id)
 
         # 本月預算整體執行率
-        budget_status = Budget.status(year, month)
+        budget_status = Budget.status(year, month, user_id)
         total_budget = sum(b['budget_amount']  for b in budget_status)
         total_actual = sum(b['actual_expense'] for b in budget_status)
         budget_rate  = round(total_actual / total_budget * 100, 1) if total_budget > 0 else 0
 
         # 持股數量（持有股數 > 0 的 ticker 數）
-        portfolio = Stock.portfolio()
+        portfolio = Stock.portfolio(user_id)
         holding_count = sum(1 for p in portfolio if p['hold_shares'] > 0)
 
         # 最近5筆交易
-        recent_rows, _ = Transaction.find(limit=5, offset=0)
+        recent_rows, _ = Transaction.find(limit=5, offset=0, user_id=user_id)
 
         return {
             'summary':       summary,

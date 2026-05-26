@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect
 from flasgger import Swagger
 from flask_jwt_extended import JWTManager
 from app.sample.view import app_sample
@@ -13,6 +13,9 @@ from app.finance.transaction.view import app_finance_transaction
 from app.finance.stock.view import app_finance_stock
 from app.finance.budget.view import app_finance_budget
 from app.finance.report.view import app_finance_report
+from app.finance.yuanta.view import app_finance_yuanta
+from app.finance.recurring.view import app_finance_recurring
+from app.finance.quick.view import app_finance_quick
 from src import FLASK_JSON_PATH
 import json
 
@@ -54,8 +57,9 @@ jwt = JWTManager(app)
 
 
 @app.route("/")
-def status():
-    return 'ok'
+def index():
+    """主域名自動跳轉至個人理財追蹤系統（含登入頁）"""
+    return redirect('/finance/')
 
 
 def create_app(confgi_object=None):
@@ -71,6 +75,9 @@ def create_app(confgi_object=None):
     app.register_blueprint(blueprint=app_finance_stock,      url_prefix='/finance/stock')
     app.register_blueprint(blueprint=app_finance_budget,     url_prefix='/finance/budget')
     app.register_blueprint(blueprint=app_finance_report,     url_prefix='/finance/report')
+    app.register_blueprint(blueprint=app_finance_yuanta,    url_prefix='/finance/yuanta')
+    app.register_blueprint(blueprint=app_finance_recurring, url_prefix='/finance/recurring')
+    app.register_blueprint(blueprint=app_finance_quick,     url_prefix='/finance/quick')
     if confgi_object:
         app.config.from_object(confgi_object)
     return app

@@ -12,3 +12,7 @@ redis==5.2.1
 # 理財追蹤系統新增套件
 pandas>=2.0.0
 openpyxl>=3.1.0
+# MySQL 連線池（pymysql 1.0+ 已移除內建 pool，改用 DBUtils）
+DBUtils>=2.0.0
+# 開發用：讓 Werkzeug reloader 使用更高效的 watchdog，減少 polling 延遲
+watchdog>=3.0.0

@@ -27,8 +27,8 @@ Python-PersonalFinanceTracker/
 │
 ├── run.py                          # 啟動入口（自動建立 admin 帳號、初始化財務分類）
 ├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml.default
+├── docker-compose.yml.default      # Docker Compose 範本（複製為 docker-compose.yml 後使用）
+├── .env.default                    # 環境變數範本（複製為 .env 後使用）
 │
 ├── app/                            # Flask 應用程式
 │   ├── __init__.py                 # Blueprint 註冊
@@ -59,24 +59,33 @@ Python-PersonalFinanceTracker/
 │   ├── flask.json.default          # SECRET_KEY 範本
 │   └── nginx/
 │       ├── nginx.conf              # nginx 主設定（worker、gzip、log 格式）
-│       ├── certs/cloudflare/       # Cloudflare 憑證放置目錄（預設空，http 模式不需要）
-│       ├── templates/
-│       │   ├── http/
-│       │   │   └── default.conf.template               # HTTP 模式 template
-│       │   └── cloudflare/
-│       │       └── default.conf.template               # Cloudflare SSL 模式 template
-│       └── conf.d/                 # 舊版靜態設定檔（參考用，已由 templates 取代）
-│           ├── default.conf.default
-│           ├── default.conf.https-letsencrypt.default
-│           └── default.conf.cloudflare.default
+│       ├── certs/cloudflare/       # Cloudflare 憑證放置目錄（http 模式不需要）
+│       └── conf.d/
+│           ├── default.conf.http.template              # HTTP 模式範本
+│           ├── default.conf.cloudflare.template        # Cloudflare SSL 模式範本
+│           └── default.conf.https-letsencrypt.template # Let's Encrypt 模式範本
 │
-└── db/
-    └── finance_schema.sql          # 理財系統資料表建立 SQL
+├── docker/
+│   ├── Dockerfile                  # Flask 映像建置檔
+│   ├── database/
+│   │   ├── mongo/                  # MongoDB 持久化資料（volume）
+│   │   ├── mysql/                  # MySQL 持久化資料（volume）
+│   │   └── redis/                  # Redis 持久化資料（volume）
+│   └── init/
+│       └── mysql/
+│           └── finance_schema.sql  # MySQL 首次啟動自動建立的資料表（4 張表）
+│
+├── db/
+│   └── finance_schema.sql          # 手動建表用（與 docker/init/mysql/ 同內容）
+│
+└── logs/                           # Flask 日誌輸出目錄（Docker volume 掛載點）
 ```
 
 ---
 
-## 快速開始
+## 快速開始（本機直接執行）
+
+> 適合本機開發測試，需自行安裝並啟動 MySQL（和選用的 MongoDB、Redis）。
 
 ### 1. 複製設定檔
 
@@ -85,22 +94,34 @@ cp conf/config.ini.default conf/config.ini
 cp conf/flask.json.default conf/flask.json
 ```
 
-### 2. 建立資料庫表格
-
-```bash
-mysql -u root -p your_database < db/finance_schema.sql
-```
-
-### 3. 設定資料庫連線
-
-編輯 `conf/config.ini`：
+### 2. 調整 `conf/config.ini` — 改為本機連線
 
 ```ini
+[MONGO]
+MONGO_URI=mongodb://localhost:27017
+
 [MYSQL]
 MYSQL_HOST=localhost
-MYSQL_USER=root
-MYSQL_PASSWORD=your_password
-MYSQL_DB=your_database
+MYSQL_USER=root           # 或你的 MySQL 使用者
+MYSQL_PASSWORD=           # 填入你的 MySQL 密碼
+MYSQL_DB=finance          # 資料庫名稱（自行決定）
+
+[REDIS]
+REDIS_HOST=localhost
+; REDIS_PASSWORD=         # 本機 Redis 無密碼則留空（保持註解）
+```
+
+> ⚠️ **注意**：`config.ini` 預設內容是 Docker 服務名稱（`mysql` / `mongo` / `redis`）。
+> 本機執行前務必改為 `localhost`，否則連線會失敗。
+
+### 3. 建立資料庫與資料表
+
+```bash
+# 建立資料庫（若尚未存在）
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS finance CHARACTER SET utf8mb4;"
+
+# 建立 4 張資料表
+mysql -u root -p finance < db/finance_schema.sql
 ```
 
 ### 4. 安裝套件並啟動
@@ -110,7 +131,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-首次啟動自動建立 `admin / admin` 帳號，**請立即修改密碼**。
+首次啟動自動建立 `admin / admin` 帳號，並插入 16 個預設財務分類，**請立即修改密碼**。
 
 | 服務 | 網址 |
 |---|---|
@@ -122,9 +143,9 @@ python run.py
 
 ## Docker 部署
 
-架構：`nginx（對外）→ app（Flask）→ MySQL / MongoDB / Redis`
+架構：`nginx（port 80/443）→ app（Flask:5000）→ MySQL / MongoDB / Redis`
 
-### 步驟一：準備設定檔
+### 步驟一：複製設定檔
 
 ```bash
 cp docker-compose.yml.default docker-compose.yml
@@ -133,7 +154,7 @@ cp conf/config.ini.default conf/config.ini
 cp conf/flask.json.default conf/flask.json
 ```
 
-### 步驟二：調整 config.ini（主機名稱改為服務名稱）
+### 步驟二：調整 `conf/config.ini`（使用 Docker 服務名稱）
 
 ```ini
 [MONGO]
@@ -147,97 +168,124 @@ MYSQL_DB=flask_app
 
 [REDIS]
 REDIS_HOST=redis
-REDIS_PASSWORD=redis_password
+REDIS_PASSWORD=redis_password   # ← 取消此行的 ; 註解
 ```
 
-> 本機直接跑 `python run.py` 時改回 `localhost`；Docker 容器內用服務名稱（`mysql` / `mongo` / `redis`）。
+> **本機 vs Docker 設定差異：**
+>
+> | 項目 | 本機直接執行 | Docker 部署 |
+> |---|---|---|
+> | MYSQL_HOST | `localhost` | `mysql` |
+> | MONGO_URI | `mongodb://localhost:27017` | `mongodb://mongo:27017` |
+> | REDIS_HOST | `localhost` | `redis` |
+> | REDIS_PASSWORD | 空（視本機設定） | `redis_password` |
 
-### 步驟三：首次啟動（建置 image）
+### 步驟三：建立 logs 目錄
+
+```bash
+mkdir -p logs
+```
+
+> Docker 會將容器內的 Flask 日誌掛載到此目錄，若目錄不存在會導致 volume 掛載失敗。
+
+### 步驟四：首次啟動（建置 image）
 
 ```bash
 docker compose up -d --build
 ```
 
-> 首次啟動需要 `--build` 以建置 Flask image。之後若只修改 Python / HTML 程式碼，**不需重新 build**，直接重啟即可：
->
-> ```bash
-> docker compose restart app
-> ```
->
-> 只有異動 `requirements.txt` 或 `Dockerfile` 時，才需要再加 `--build`。
+**首次啟動會自動：**
+- 建置 Flask image（安裝 requirements.txt 所有套件）
+- MySQL 初始化資料庫並執行 `docker/init/mysql/finance_schema.sql`，自動建立 4 張資料表
+- Flask 啟動後插入 16 個預設財務分類
+
+> **注意：** MySQL 容器加入了 `healthcheck`，Flask 會等 MySQL 完全就緒（約 30–60 秒）後才啟動，不會出現連線失敗。
+
+---
+
+後續修改程式碼（`.py` / `.html`）時：
+```bash
+docker compose restart app    # ← 不需重新 build，直接重啟
+```
+
+異動 `requirements.txt` 或 `docker/Dockerfile` 時：
+```bash
+docker compose build app && docker compose up -d app   # ← 需重新 build
+```
 
 ### 服務一覽
 
 | 服務 | 映像 | 說明 |
 |---|---|---|
-| `nginx` | nginx:alpine | 反向代理，對外唯一入口（port 80） |
+| `nginx` | nginx:alpine | 反向代理，對外唯一入口（port 80 / 443） |
 | `app` | 本地建置 | Flask 應用，僅內部 5000（不對外） |
-| `mongo` | mongo:7 | MongoDB（操作紀錄） |
-| `mysql` | mysql:8.0 | MySQL（理財資料） |
-| `redis` | redis:7-alpine | Redis（快取） |
+| `mongo` | mongo:7 | MongoDB（使用者帳號、操作紀錄） |
+| `mysql` | mysql:8.0 | MySQL（所有理財資料） |
+| `redis` | redis:7-alpine | Redis（快取，密碼：redis_password） |
 
-### 開啟系統（Docker）
+### 開啟系統
 
 | 服務 | 網址 |
 |---|---|
-| 📊 理財追蹤系統 | http://127.0.0.1/finance/ |
-| 🛠 系統後台管理 | http://127.0.0.1/admin/ |
-| 📄 Swagger API 文件 | http://127.0.0.1/apidocs |
-
-### 部署自訂域名（含 HTTPS）
-
-nginx 模式透過 `.env` 的 `NGINX_MODE` 控制，**不需要手動換設定檔**，只要改 `.env` 再重啟即可。
-
-| `NGINX_MODE` | 說明 | 適用情境 |
-|---|---|---|
-| `http` | 純 HTTP（預設） | 本機、無域名、內網 |
-| `cloudflare` | Cloudflare Origin CA SSL | 域名走 Cloudflare 代理 |
+| 📊 個人理財追蹤系統 | http://localhost/finance/ |
+| 🛠 系統後台管理 | http://localhost/admin/ |
+| 📄 Swagger API 文件 | http://localhost/apidocs |
 
 ---
 
-#### 模式一：HTTP（預設，無需額外設定）
+## 部署自訂域名（HTTPS）
 
-`.env` 保持預設即可：
+nginx 模式透過 `.env` 的 `NGINX_MODE` 控制，無需手動修改設定檔。
 
+| `NGINX_MODE` | 說明 | 適用情境 |
+|---|---|---|
+| `http` | 純 HTTP（預設） | 本機、IP 直連、內網 |
+| `cloudflare` | Cloudflare Origin CA SSL | 域名走 Cloudflare 代理（推薦） |
+| `https-letsencrypt` | Let's Encrypt 自動憑證 | 有公開域名的 VPS |
+
+### 模式一：HTTP（預設，無需額外設定）
+
+`.env` 維持預設：
 ```env
 NGINX_MODE=http
 DOMAIN=_
 ```
 
+啟動後直接以 `http://IP` 存取。
+
 ---
 
-#### 模式二：Cloudflare SSL
+### 模式二：Cloudflare SSL（推薦）
 
-##### 1. DNS 設定
+#### 1. DNS 設定
 
-Cloudflare Dashboard → 你的域名 → DNS → 新增 A Record：
+Cloudflare Dashboard → 你的域名 → DNS → 新增：
 
 ```
-類型   名稱   值              Proxy
-A      @      伺服器 IP       ☁ Proxied
+類型   名稱   值（伺服器 IP）   Proxy
+A      @      1.2.3.4          ☁ Proxied
 ```
 
-##### 2. 伺服器開放 Port
+#### 2. 伺服器開放 Port
 
 ```bash
 ufw allow 80 && ufw allow 443
 ```
 
-##### 3. 建立 Cloudflare Origin CA 憑證
+#### 3. 建立 Origin CA 憑證
 
 Cloudflare Dashboard → **SSL/TLS → Origin Server → Create Certificate**
 
-- 選 RSA，有效期 15 年
-- 複製 **Origin Certificate** 和 **Private Key**
+選 RSA 2048、有效期 15 年，複製 Certificate 和 Private Key：
 
 ```bash
 mkdir -p /etc/ssl/cloudflare
-nano /etc/ssl/cloudflare/origin.pem   # 貼上 Origin Certificate
-nano /etc/ssl/cloudflare/origin.key   # 貼上 Private Key
+nano /etc/ssl/cloudflare/origin.pem    # 貼上 Origin Certificate
+nano /etc/ssl/cloudflare/origin.key    # 貼上 Private Key
 chmod 600 /etc/ssl/cloudflare/origin.key
 ```
 
-##### 4. 更新 `.env`
+#### 4. 更新 `.env`
 
 ```env
 NGINX_MODE=cloudflare
@@ -245,24 +293,42 @@ DOMAIN=your.domain.com
 CF_CERT_DIR=/etc/ssl/cloudflare
 ```
 
-##### 5. 啟動
+#### 5. 啟動
 
 ```bash
 docker compose up -d
 ```
 
-> Cloudflare SSL/TLS 模式記得設為 **Full (Strict)**，確保 Cloudflare ↔ 伺服器端對端加密。
+> Cloudflare SSL/TLS 模式需設為 **Full (Strict)**，確保端對端加密。
 
-### 常用指令
+---
+
+## 常用維運指令
 
 ```bash
-docker compose ps                    # 查看運行狀態
-docker compose logs -f app           # 即時查看 Flask 日誌
-docker compose logs -f nginx         # 即時查看 nginx 日誌
-docker compose restart app           # 重啟應用（程式碼異動後）
-docker compose restart nginx         # 重載 nginx 設定
-docker compose down                  # 停止所有服務
-docker compose down -v               # 停止並清除資料（不可逆）
+# 查看狀態
+docker compose ps
+
+# 即時日誌
+docker compose logs -f app           # Flask 日誌
+docker compose logs -f nginx         # nginx 日誌
+docker compose logs -f mysql         # MySQL 日誌
+
+# 重啟
+docker compose restart app           # 程式碼修改後重啟 Flask
+docker compose restart nginx         # nginx 設定修改後重啟
+
+# 停止
+docker compose down                  # 停止（保留資料）
+docker compose down -v               # 停止並清除所有資料 ⚠️ 不可逆
+
+# 強制重建（requirements.txt / Dockerfile 有修改時）
+docker compose build app --no-cache && docker compose up -d app
+
+# 進入容器除錯
+docker compose exec app bash         # 進入 Flask 容器
+docker compose exec mysql bash       # 進入 MySQL 容器
+docker compose exec mysql mysql -u flask_user -pflask_password flask_app  # 直接開 MySQL CLI
 ```
 
 ---
@@ -398,11 +464,17 @@ docker compose down -v               # 停止並清除資料（不可逆）
 
 | 項目 | 說明 |
 |---|---|
-| `conf/flask.json` | 含 SECRET_KEY，**勿提交版控** |
-| `docker-compose.yml` | 由 `.default` 複製而來，**勿提交版控** |
-| nginx 設定 | `conf/nginx/conf.d/default.conf` 不納入版控；從 `*.default` 範本複製後修改 |
+| `conf/flask.json` | 含 SECRET_KEY，**勿提交版控**（已加入 .gitignore） |
+| `docker-compose.yml` / `.env` | 由 `.default` 複製而來，**勿提交版控** |
+| `conf/config.ini` | 含 DB 密碼，**勿提交版控**（已加入 .gitignore） |
+| 本機 vs Docker 設定 | `config.ini` 的 host 需手動切換：本機用 `localhost`，Docker 用服務名稱 |
+| MySQL TEXT 欄位 | MySQL 8.0 嚴格模式不允許 `TEXT DEFAULT ''`，schema 已修正為 `TEXT`（無 DEFAULT）|
+| MySQL 連線池 | PyMySQL 1.0+ 已移除 `pymysql.pool`，改用 `DBUtils.PooledDB`（requirements.txt 已含）|
+| `logs/` 目錄 | Docker volume 掛載點，**需手動建立**（`mkdir -p logs`）否則啟動失敗 |
+| MySQL init SQL | 只在 Docker volume 為空時自動執行；若需重新初始化，刪除 `docker/database/mysql/` 內容後重啟 |
 | 預設帳號 | `admin / admin`，首次登入後請立即修改 |
 | 理財系統分類 | 首次啟動自動插入 16 個預設分類（10 支出 + 6 收入） |
 | CSV 編碼 | UTF-8 BOM，可直接以 Excel 開啟並顯示中文 |
-| 股票持倉計算 | 買入股數 - 賣出股數 = 持有股數；平均成本 = 買入總成本 ÷ 買入總股數 |
+| 股票持倉計算 | 買入股數 − 賣出股數 = 持有股數；平均成本 = 買入總成本 ÷ 買入總股數 |
 | 預算警示 | 使用率 ≥ 80% 顯示黃色，> 100% 顯示紅色 |
+| 正式部署 | 修改 `docker-compose.yml` 內的預設密碼（`root_password` / `flask_password` / `redis_password`） |

@@ -39,6 +39,7 @@ class TestingConfig(BasicConfig):
         BasicConfig (_type_): _description_
     """
     TESTING = False,
-    DEBUG = False,
+    DEBUG = True
+    TEMPLATES_AUTO_RELOAD = True   # HTML 模板修改後自動重載，無需重啟容器
     DB_SERVER = 'localhost'
     DATABASE_URI = 'sqlite:///:memory:'
