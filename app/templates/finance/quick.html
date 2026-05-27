@@ -327,6 +327,112 @@
       border-radius: 50%; animation: spin .7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Mode bar (收支 / 股票) ─────────── */
+    #mode-bar {
+      display: flex; gap: 0;
+      padding: 10px 16px 0;
+      flex-shrink: 0;
+    }
+    .mode-btn {
+      flex: 1; padding: 9px 0;
+      border: 1.5px solid var(--clr-border); background: var(--clr-card);
+      color: var(--clr-sub); font-size: .88rem; font-weight: 600;
+      cursor: pointer; transition: all .18s;
+    }
+    .mode-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+    .mode-btn:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+    .mode-btn.active { background: var(--clr-primary); border-color: var(--clr-primary); color: #fff; }
+    .mode-btn:active { opacity: .8; }
+
+    /* ── Stock panel ─────────────────────── */
+    #stock-panel { display: none; flex-direction: column; }
+    #stock-panel.visible { display: flex; }
+
+    .stk-ticker-row {
+      margin: 12px 16px 0;
+      display: flex; gap: 8px; align-items: stretch;
+    }
+    .stk-ticker-input {
+      flex: 1; padding: 12px 14px;
+      background: var(--clr-card); border: 2px solid var(--clr-border);
+      border-radius: var(--radius); font-size: 1.4rem; font-weight: 700;
+      color: var(--clr-text); outline: none; text-transform: uppercase;
+      font-family: inherit; letter-spacing: 1px;
+    }
+    .stk-ticker-input:focus { border-color: var(--clr-primary); }
+    .stk-ticker-input::placeholder { font-size: .9rem; font-weight: 400; color: var(--clr-muted); letter-spacing: 0; }
+    .stk-market-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .stk-mkt-btn {
+      flex: 1; padding: 6px 14px;
+      border: 1.5px solid var(--clr-border); border-radius: 8px;
+      background: var(--clr-card); color: var(--clr-sub);
+      font-size: .78rem; font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .stk-mkt-btn.active { background: #eff6ff; border-color: #3b82f6; color: #3b82f6; }
+    .stk-mkt-btn:active { transform: scale(.93); }
+
+    .stk-action-bar { margin: 10px 16px 0; display: flex; gap: 8px; }
+    .stk-action-btn {
+      flex: 1; padding: 11px 0;
+      border: 2px solid transparent; border-radius: var(--radius);
+      font-size: .88rem; font-weight: 600; cursor: pointer;
+      background: var(--clr-card); color: var(--clr-sub); transition: all .18s;
+    }
+    .stk-action-btn[data-action="buy"].active      { background: #eff6ff; border-color: #3b82f6; color: #3b82f6; }
+    .stk-action-btn[data-action="sell"].active     { background: #fff7ed; border-color: #f97316; color: #f97316; }
+    .stk-action-btn[data-action="dividend"].active { background: #f0fdf4; border-color: var(--clr-income); color: var(--clr-income); }
+    .stk-action-btn:active { transform: scale(.97); }
+
+    .stk-fields-wrap {
+      margin: 10px 16px 0;
+      background: var(--clr-card); border-radius: var(--radius); overflow: hidden;
+    }
+    .stk-field-bar { display: flex; border-bottom: 1px solid var(--clr-border); }
+    .stk-fld-btn {
+      flex: 1; padding: 9px 4px;
+      border: none; background: transparent; font-size: .75rem;
+      color: var(--clr-sub); cursor: pointer; transition: all .15s;
+      border-bottom: 3px solid transparent; margin-bottom: -1px;
+    }
+    .stk-fld-btn.active { color: var(--clr-primary); border-bottom-color: var(--clr-primary); font-weight: 700; }
+    .stk-fld-btn:active { background: #f8fafc; }
+    .stk-field-values { display: grid; grid-template-columns: repeat(3, 1fr); padding: 8px; gap: 6px; }
+    .stk-fv-item {
+      text-align: center; padding: 6px 4px;
+      border-radius: 8px; background: #f8fafc;
+    }
+    .stk-fv-label { font-size: .65rem; color: var(--clr-muted); margin-bottom: 3px; }
+    .stk-fv-val   { font-size: 1rem; font-weight: 700; color: var(--clr-text); }
+    .stk-fv-item.active { background: #eff6ff; }
+    .stk-fv-item.active .stk-fv-val { color: var(--clr-primary); }
+
+    .stk-amount-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-top: 1px solid var(--clr-border);
+    }
+    .stk-amt-label { font-size: .75rem; color: var(--clr-sub); }
+    .stk-amt-val   { font-size: 1.5rem; font-weight: 700; color: var(--clr-text); }
+
+    /* Stock submit colours */
+    #btn-submit.type-buy      { background: #3b82f6; }
+    #btn-submit.type-sell     { background: #f97316; }
+    #btn-submit.type-dividend { background: var(--clr-income); }
+
+    /* Recent tabs */
+    #recent-tabs {
+      display: flex; padding: 0 12px;
+      border-bottom: 1px solid var(--clr-border); gap: 4px;
+    }
+    .rtab-btn {
+      padding: 8px 14px; border: none; background: transparent;
+      font-size: .82rem; color: var(--clr-sub); cursor: pointer;
+      border-bottom: 2.5px solid transparent; margin-bottom: -1px;
+    }
+    .rtab-btn.active { color: var(--clr-primary); border-bottom-color: var(--clr-primary); font-weight: 700; }
+    .rec-amount.buy      { color: #3b82f6; }
+    .rec-amount.sell     { color: #f97316; }
+    .rec-amount.dividend { color: var(--clr-income); }
   </style>
 </head>
 <body>
@@ -356,6 +462,58 @@
 
   <!-- Main -->
   <div id="main">
+    <!-- Mode Bar -->
+    <div id="mode-bar">
+      <button class="mode-btn active" data-mode="txn">💰 收支</button>
+      <button class="mode-btn" data-mode="stock">📈 股票</button>
+    </div>
+
+    <!-- Stock Panel (hidden when mode=txn) -->
+    <div id="stock-panel">
+      <!-- Ticker + Market -->
+      <div class="stk-ticker-row">
+        <input id="stk-ticker" class="stk-ticker-input" type="text"
+               placeholder="股票代號（如 2330）"
+               autocomplete="off" autocapitalize="characters" spellcheck="false"/>
+        <div class="stk-market-wrap">
+          <button class="stk-mkt-btn active" data-market="TW">台股</button>
+          <button class="stk-mkt-btn" data-market="US">美股</button>
+        </div>
+      </div>
+      <!-- Action toggle -->
+      <div class="stk-action-bar">
+        <button class="stk-action-btn active" data-action="buy">🟢 買入</button>
+        <button class="stk-action-btn" data-action="sell">🔴 賣出</button>
+        <button class="stk-action-btn" data-action="dividend">💵 股利</button>
+      </div>
+      <!-- Field selector + display -->
+      <div class="stk-fields-wrap">
+        <div class="stk-field-bar">
+          <button class="stk-fld-btn active" data-field="shares" id="stk-fld-label-shares">股數</button>
+          <button class="stk-fld-btn" data-field="price" id="stk-fld-label-price">價格</button>
+          <button class="stk-fld-btn" data-field="fee">手續費</button>
+        </div>
+        <div class="stk-field-values">
+          <div class="stk-fv-item active" id="stk-fv-shares">
+            <div class="stk-fv-label" id="stk-fv-label-shares">股數</div>
+            <div class="stk-fv-val" id="stk-val-shares">0</div>
+          </div>
+          <div class="stk-fv-item" id="stk-fv-price">
+            <div class="stk-fv-label" id="stk-fv-label-price">價格</div>
+            <div class="stk-fv-val" id="stk-val-price">0</div>
+          </div>
+          <div class="stk-fv-item" id="stk-fv-fee">
+            <div class="stk-fv-label">手續費</div>
+            <div class="stk-fv-val" id="stk-val-fee">0</div>
+          </div>
+        </div>
+        <div class="stk-amount-row">
+          <span class="stk-amt-label" id="stk-amt-label">交易金額（股數 × 價格）</span>
+          <span class="stk-amt-val" id="stk-computed-amt">$0</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Type Toggle -->
     <div id="type-bar">
       <button class="type-btn active" data-type="expense">
@@ -435,7 +593,10 @@
   <div id="recent-overlay">
     <div id="recent-sheet">
       <div id="recent-handle"></div>
-      <div id="recent-title">最近 10 筆記錄</div>
+      <div id="recent-tabs">
+        <button class="rtab-btn active" data-rtab="txn">收支記帳</button>
+        <button class="rtab-btn" data-rtab="stock">股票記錄</button>
+      </div>
       <div id="recent-list"></div>
     </div>
   </div>
@@ -449,12 +610,26 @@ const S = {
   token:      localStorage.getItem('finance_token') || '',
   username:   localStorage.getItem('finance_username') || '',
   displayName:localStorage.getItem('finance_display_name') || '',
+  // ── txn mode ───────────────────────
   type:       'expense',      // 'expense' | 'income'
   amtRaw:     '0',            // raw string, e.g. "1500" "150.5"
   catId:      null,
   date:       'today',        // 'today' | 'yesterday' | 'custom'
   customDate: '',
   cats:       [],
+  // ── top-level mode ─────────────────
+  mode:       'txn',          // 'txn' | 'stock'
+  recentTab:  'txn',
+  // ── stock mode ─────────────────────
+  stk: {
+    ticker:      '',
+    market:      'TW',
+    action:      'buy',       // 'buy' | 'sell' | 'dividend'
+    shares:      '0',
+    price:       '0',
+    fee:         '0',
+    activeField: 'shares',    // which field numpad targets
+  },
 };
 
 // ══════════════════════════════════════════════════════════
@@ -601,30 +776,180 @@ function setType(type) {
 }
 
 // ══════════════════════════════════════════════════════════
+// Mode (txn / stock)
+// ══════════════════════════════════════════════════════════
+function setMode(mode) {
+  haptic(20);
+  S.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode)
+  );
+  const txnIds  = ['type-bar', 'amount-wrap', 'cat-section'];
+  const stockEl = document.getElementById('stock-panel');
+  if (mode === 'txn') {
+    txnIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+    stockEl.classList.remove('visible');
+    // restore submit button
+    setType(S.type);
+  } else {
+    txnIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    stockEl.classList.add('visible');
+    updateStockSubmitBtn();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// Stock helpers
+// ══════════════════════════════════════════════════════════
+function setStockAction(action) {
+  haptic(20);
+  S.stk.action = action;
+  document.querySelectorAll('.stk-action-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.action === action)
+  );
+  // Relabel fields for dividend
+  const isDividend = action === 'dividend';
+  const sharesLabel = isDividend ? '股利金額' : '股數';
+  const priceLabel  = isDividend ? '(選填)價格' : '價格';
+  document.getElementById('stk-fld-label-shares').textContent = sharesLabel;
+  document.getElementById('stk-fld-label-price').textContent  = priceLabel;
+  document.getElementById('stk-fv-label-shares').textContent  = sharesLabel;
+  document.getElementById('stk-fv-label-price').textContent   = priceLabel;
+  document.getElementById('stk-amt-label').textContent =
+    isDividend ? '股利金額（直接輸入）' : '交易金額（股數 × 價格）';
+  updateStockDisplay();
+  updateStockSubmitBtn();
+}
+
+function setStockMarket(market) {
+  haptic(15);
+  S.stk.market = market;
+  document.querySelectorAll('.stk-mkt-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.market === market)
+  );
+}
+
+function setNumpadField(field) {
+  haptic(15);
+  S.stk.activeField = field;
+  document.querySelectorAll('.stk-fld-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.field === field)
+  );
+  ['shares', 'price', 'fee'].forEach(f => {
+    document.getElementById(`stk-fv-${f}`).classList.toggle('active', f === field);
+  });
+}
+
+function updateStockDisplay() {
+  ['shares', 'price', 'fee'].forEach(f => {
+    const el = document.getElementById(`stk-val-${f}`);
+    if (el) el.textContent = fmtAmount(S.stk[f]);
+  });
+  const shares  = parseFloat(S.stk.shares) || 0;
+  const price   = parseFloat(S.stk.price)  || 0;
+  const computed = S.stk.action === 'dividend' ? shares : shares * price;
+  const el = document.getElementById('stk-computed-amt');
+  if (el) el.textContent = '$' + computed.toLocaleString('zh-TW', { maximumFractionDigits: 2 });
+}
+
+function updateStockSubmitBtn() {
+  const btn = document.getElementById('btn-submit');
+  const a   = S.stk.action;
+  btn.className = `type-${a}`;
+  btn.textContent = { buy: '記錄買入', sell: '記錄賣出', dividend: '記錄股利' }[a] || '記錄';
+}
+
+async function submitStock() {
+  const ticker = document.getElementById('stk-ticker').value.trim().toUpperCase();
+  if (!ticker) { toast('請輸入股票代號', 'error'); haptic([30,20,30]); return; }
+
+  const shares = parseFloat(S.stk.shares) || 0;
+  const price  = parseFloat(S.stk.price)  || 0;
+  const fee    = parseFloat(S.stk.fee)    || 0;
+
+  let amount;
+  if (S.stk.action === 'dividend') {
+    amount = shares;  // for dividend, shares field holds the dividend amount
+    if (amount <= 0) { toast('請輸入股利金額', 'error'); haptic([30,20,30]); return; }
+  } else {
+    amount = shares * price;
+    if (amount <= 0) { toast('請輸入股數和價格', 'error'); haptic([30,20,30]); return; }
+  }
+
+  const btn  = document.getElementById('btn-submit');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled  = true;
+  haptic(30);
+
+  try {
+    const note = document.getElementById('inp-note').value.trim();
+    const d = await apiFetch('/finance/stock/', {
+      method: 'POST',
+      body: JSON.stringify({
+        date:    getDate(),
+        ticker:  ticker,
+        market:  S.stk.market,
+        action:  S.stk.action,
+        shares:  S.stk.action === 'dividend' ? 0 : shares,
+        price:   S.stk.action === 'dividend' ? 0 : price,
+        amount:  amount,
+        fee:     fee,
+        note:    note,
+      }),
+    });
+    if (!d.success) throw new Error(d.message || '記錄失敗');
+
+    haptic([40, 20, 60]);
+    const lbl = { buy: '買入', sell: '賣出', dividend: '股利' }[S.stk.action];
+    toast(`✅ ${ticker} ${lbl} $${amount.toLocaleString('zh-TW',{maximumFractionDigits:0})}`, 'success');
+
+    // reset
+    S.stk.shares = '0'; S.stk.price = '0'; S.stk.fee = '0';
+    document.getElementById('stk-ticker').value = '';
+    document.getElementById('inp-note').value = '';
+    updateStockDisplay();
+  } catch(e) {
+    toast(`❌ ${e.message}`, 'error');
+    haptic([50, 30, 50]);
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 // Numpad
 // ══════════════════════════════════════════════════════════
 function updateAmountDisplay() {
   document.getElementById('amount-text').textContent = fmtAmount(S.amtRaw);
 }
 
+function numpadEdit(cur, val, maxDec = 2, maxInt = 10) {
+  if (val === 'del') {
+    return cur.length <= 1 ? '0' : cur.slice(0, -1);
+  } else if (val === '.') {
+    return cur.includes('.') ? cur : cur + '.';
+  } else {
+    if (cur === '0') return val;
+    const dotIdx = cur.indexOf('.');
+    if (dotIdx !== -1 && cur.length - dotIdx > maxDec) return cur;
+    if (cur.replace('.', '').length >= maxInt) return cur;
+    return cur + val;
+  }
+}
+
 function numpadPress(val) {
   haptic(15);
-  if (val === 'del') {
-    if (S.amtRaw.length <= 1) S.amtRaw = '0';
-    else S.amtRaw = S.amtRaw.slice(0, -1);
-  } else if (val === '.') {
-    if (!S.amtRaw.includes('.')) S.amtRaw += '.';
+  if (S.mode === 'txn') {
+    S.amtRaw = numpadEdit(S.amtRaw, val);
+    updateAmountDisplay();
   } else {
-    if (S.amtRaw === '0' && val !== '.') S.amtRaw = val;
-    else {
-      // max 2 decimal places
-      const dotIdx = S.amtRaw.indexOf('.');
-      if (dotIdx !== -1 && S.amtRaw.length - dotIdx > 2) return;
-      if (S.amtRaw.replace('.', '').length >= 10) return;
-      S.amtRaw += val;
-    }
+    // stock mode — target activeField
+    const f = S.stk.activeField;
+    S.stk[f] = numpadEdit(S.stk[f], val, 4);
+    updateStockDisplay();
   }
-  updateAmountDisplay();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -648,6 +973,7 @@ function setDate(d) {
 // Submit
 // ══════════════════════════════════════════════════════════
 async function submitEntry() {
+  if (S.mode === 'stock') { return submitStock(); }
   const amt = parseFloat(S.amtRaw);
   if (!amt || amt <= 0) { toast('請輸入金額', 'error'); haptic([30,20,30]); return; }
   if (!S.catId) { toast('請選擇分類', 'error'); haptic([30,20,30]); return; }
@@ -696,36 +1022,74 @@ async function submitEntry() {
 // ══════════════════════════════════════════════════════════
 async function openRecent() {
   haptic(20);
-  const overlay = document.getElementById('recent-overlay');
-  overlay.classList.add('open');
-  // load
+  document.getElementById('recent-overlay').classList.add('open');
+  // open to the tab that matches current mode
+  await loadRecentTab(S.mode === 'stock' ? 'stock' : 'txn');
+}
+
+async function loadRecentTab(tab) {
+  S.recentTab = tab;
+  document.querySelectorAll('.rtab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.rtab === tab)
+  );
+  const list = document.getElementById('recent-list');
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--clr-muted)">載入中…</div>';
   try {
-    const d = await apiFetch('/finance/transaction/?limit=10&offset=0');
-    const rows = d.data || [];
-    const list = document.getElementById('recent-list');
-    if (!rows.length) {
-      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--clr-muted)">尚無記錄</div>';
-      return;
+    if (tab === 'txn') {
+      const d    = await apiFetch('/finance/transaction/?limit=10&offset=0');
+      const rows = d.data || [];
+      if (!rows.length) {
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--clr-muted)">尚無記錄</div>';
+        return;
+      }
+      list.innerHTML = rows.map(r => {
+        const cls     = r.type === 'expense' ? 'expense' : 'income';
+        const sign    = r.type === 'expense' ? '-' : '+';
+        const bg      = r.category_color || '#5c7cfa';
+        const rawIco  = r.category_icon  || 'bi-tag';
+        const icoHtml = rawIco.startsWith('bi-') ? `<i class="bi ${rawIco}"></i>` : rawIco;
+        const amt  = parseFloat(r.amount || 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+        const desc = r.description || r.category_name || '—';
+        return `<div class="rec-item">
+          <div class="rec-icon" style="background:${bg}22;color:${bg}">${icoHtml}</div>
+          <div class="rec-info">
+            <div class="rec-desc">${desc}</div>
+            <div class="rec-meta">${r.date} · ${r.category_name || '未分類'}</div>
+          </div>
+          <div class="rec-amount ${cls}">${sign}$${amt}</div>
+        </div>`;
+      }).join('');
+    } else {
+      // stock tab
+      const d    = await apiFetch('/finance/stock/?limit=10&offset=0');
+      const rows = d.data || [];
+      if (!rows.length) {
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--clr-muted)">尚無股票記錄</div>';
+        return;
+      }
+      const actionLabel = { buy: '買入', sell: '賣出', dividend: '股利' };
+      const actionColor = { buy: '#3b82f6', sell: '#f97316', dividend: '#10b981' };
+      const actionIco   = { buy: 'bi-arrow-down-right-circle-fill', sell: 'bi-arrow-up-right-circle-fill', dividend: 'bi-cash-coin' };
+      list.innerHTML = rows.map(r => {
+        const action = r.action || 'buy';
+        const clr    = actionColor[action] || '#5c7cfa';
+        const ico    = actionIco[action]   || 'bi-graph-up';
+        const amt    = parseFloat(r.amount || 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+        const name   = r.company_name ? `${r.ticker} ${r.company_name}` : r.ticker;
+        const detail = r.shares ? ` · ${r.shares}股 @${r.price}` : '';
+        return `<div class="rec-item">
+          <div class="rec-icon" style="background:${clr}22;color:${clr}"><i class="bi ${ico}"></i></div>
+          <div class="rec-info">
+            <div class="rec-desc">${name}</div>
+            <div class="rec-meta">${r.date} · ${actionLabel[action] || action}${detail}</div>
+          </div>
+          <div class="rec-amount ${action}">$${amt}</div>
+        </div>`;
+      }).join('');
     }
-    list.innerHTML = rows.map(r => {
-      const cls  = r.type === 'expense' ? 'expense' : 'income';
-      const sign = r.type === 'expense' ? '-' : '+';
-      const bg      = r.category_color || '#5c7cfa';
-      const rawIco  = r.category_icon  || 'bi-tag';
-      const icoHtml = rawIco.startsWith('bi-') ? `<i class="bi ${rawIco}"></i>` : rawIco;
-      const amt  = parseFloat(r.amount || 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
-      const desc = r.description || r.category_name || '—';
-      return `<div class="rec-item">
-        <div class="rec-icon" style="background:${bg}22;color:${bg}">${icoHtml}</div>
-        <div class="rec-info">
-          <div class="rec-desc">${desc}</div>
-          <div class="rec-meta">${r.date} · ${r.category_name || '未分類'}</div>
-        </div>
-        <div class="rec-amount ${cls}">${sign}$${amt}</div>
-      </div>`;
-    }).join('');
   } catch(e) {
     console.warn('recent', e);
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--clr-muted)">載入失敗</div>';
   }
 }
 
@@ -761,9 +1125,37 @@ async function handleLogin() {
 // Event bindings
 // ══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // mode bar
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.addEventListener('click', () => setMode(b.dataset.mode));
+  });
+
   // type buttons
   document.querySelectorAll('.type-btn').forEach(b => {
     b.addEventListener('click', () => setType(b.dataset.type));
+  });
+
+  // stock action
+  document.querySelectorAll('.stk-action-btn').forEach(b => {
+    b.addEventListener('click', () => setStockAction(b.dataset.action));
+  });
+
+  // stock market
+  document.querySelectorAll('.stk-mkt-btn').forEach(b => {
+    b.addEventListener('click', () => setStockMarket(b.dataset.market));
+  });
+
+  // stock numpad field selector
+  document.querySelectorAll('.stk-fld-btn').forEach(b => {
+    b.addEventListener('click', () => setNumpadField(b.dataset.field));
+  });
+
+  // ticker input auto-uppercase
+  document.getElementById('stk-ticker').addEventListener('input', e => {
+    const pos = e.target.selectionStart;
+    e.target.value = e.target.value.toUpperCase();
+    e.target.setSelectionRange(pos, pos);
+    S.stk.ticker = e.target.value;
   });
 
   // numpad
@@ -789,6 +1181,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('recent-handle').addEventListener('click', closeRecent);
   document.getElementById('recent-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('recent-overlay')) closeRecent();
+  });
+
+  // recent tabs
+  document.querySelectorAll('.rtab-btn').forEach(b => {
+    b.addEventListener('click', () => loadRecentTab(b.dataset.rtab));
   });
 
   // login
