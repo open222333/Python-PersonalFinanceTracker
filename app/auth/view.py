@@ -3,11 +3,15 @@
 url_prefix: /auth
 
 端點：
+  GET  /auth/register-status — 查詢是否開放自助註冊
+  POST /auth/register        — 自助註冊（須 REGISTER_ENABLED=true）
   POST /auth/login           — 帳號密碼登入，回傳 JWT
   GET  /auth/me              — 取得當前登入使用者資訊
   POST /auth/change-password — 使用者自行修改密碼
   PUT  /auth/profile         — 使用者更新自己的顯示名稱/信箱
 """
+import os
+import re
 import logging
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
@@ -19,6 +23,81 @@ from src.permissions import get_current_user_id
 
 logger = logging.getLogger(__name__)
 app_auth = Blueprint('auth', __name__)
+
+# 帳號格式：3–32 字元，只允許英數字、底線、連字號
+_USERNAME_RE = re.compile(r'^[A-Za-z0-9_-]{3,32}$')
+
+
+def _is_register_enabled() -> bool:
+    """讀取 REGISTER_ENABLED 環境變數，預設為 false"""
+    return os.environ.get('REGISTER_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+
+
+def _make_token(user: dict) -> str:
+    return create_access_token(
+        identity=str(user['id']),
+        additional_claims={
+            'role':         user['role'],
+            'username':     user['username'],
+            'display_name': user.get('display_name') or '',
+        },
+    )
+
+
+@app_auth.route('/register-status', methods=['GET'])
+def register_status():
+    """查詢是否開放自助註冊"""
+    return jsonify({'success': True, 'enabled': _is_register_enabled()})
+
+
+@app_auth.route('/register', methods=['POST'])
+def register():
+    """自助註冊（須 REGISTER_ENABLED=true）"""
+    if not _is_register_enabled():
+        return jsonify({'success': False, 'message': '目前未開放自助註冊，請聯絡管理員'}), 403
+
+    data = request.get_json() or {}
+    username     = data.get('username', '').strip()
+    password     = data.get('password', '')
+    confirm_pw   = data.get('confirm_password', '')
+    display_name = data.get('display_name', '').strip()
+
+    # 驗證
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'username 與 password 為必填'}), 400
+    if not _USERNAME_RE.match(username):
+        return jsonify({'success': False, 'message': '帳號格式錯誤（3–32 字元，英數字／底線／連字號）'}), 400
+    if len(password) < 6:
+        return jsonify({'success': False, 'message': '密碼長度至少 6 個字元'}), 400
+    if confirm_pw and confirm_pw != password:
+        return jsonify({'success': False, 'message': '兩次密碼輸入不一致'}), 400
+    if User.find_by_username(username):
+        return jsonify({'success': False, 'message': '此帳號已被使用，請換一個'}), 409
+
+    # 建立帳號（固定 role=user）
+    user_id = User.create(username, password, role='user', display_name=display_name)
+
+    # 初始化預設財務分類
+    try:
+        from src.models.finance import Category
+        Category.init_defaults_for_user(user_id)
+    except Exception as e:
+        logger.warning(f'[auth] 初始化分類失敗（user_id={user_id}）：{e}')
+
+    # 回傳 JWT，直接登入
+    user = User.find_by_id(user_id)
+    User.update_last_login(user_id)
+    token = _make_token(user)
+    logger.info(f'[auth] 新使用者自助註冊：{username} (id={user_id})')
+
+    return jsonify({
+        'success':      True,
+        'token':        token,
+        'user_id':      user_id,
+        'username':     username,
+        'display_name': display_name or username,
+        'role':         'user',
+    }), 201
 
 
 @app_auth.route('/login', methods=['POST'])
@@ -39,15 +118,7 @@ def login():
     if not User.check_password(password, user['password']):
         return jsonify({'success': False, 'message': '帳號或密碼錯誤'}), 401
 
-    additional_claims = {
-        'role':         user['role'],
-        'username':     user['username'],
-        'display_name': user.get('display_name') or '',
-    }
-    token = create_access_token(
-        identity=str(user['id']),
-        additional_claims=additional_claims,
-    )
+    token = _make_token(user)
     User.update_last_login(user['id'])
     logger.info(f'[auth] 使用者登入：{username} (id={user["id"]}, role={user["role"]})')
 

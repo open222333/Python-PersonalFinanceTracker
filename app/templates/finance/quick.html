@@ -57,11 +57,21 @@
       position: absolute; inset: 0; z-index: 9999;
       background: var(--clr-topbar);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 20px;
-      padding: 40px 32px;
+      align-items: center; justify-content: center; gap: 16px;
+      padding: 40px 32px; overflow-y: auto;
     }
     #login-overlay h1 { color: #fff; font-size: 1.5rem; font-weight: 700; }
-    #login-overlay p  { color: var(--clr-muted); font-size: .88rem; text-align: center; }
+    /* 登入/註冊 tab */
+    .auth-tabs {
+      display: flex; width: 100%; gap: 0;
+      border: 1.5px solid #3d4566; border-radius: 10px; overflow: hidden;
+    }
+    .auth-tab-btn {
+      flex: 1; padding: 9px 0;
+      border: none; background: transparent; color: #8899bb;
+      font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .auth-tab-btn.active { background: var(--clr-primary); color: #fff; }
     .login-field {
       width: 100%; padding: 13px 16px;
       border: 1.5px solid #3d4566; border-radius: 12px;
@@ -70,14 +80,17 @@
     }
     .login-field:focus { border-color: var(--clr-primary); }
     .login-field::placeholder { color: #4e5d80; }
-    #btn-login {
+    .auth-submit-btn {
       width: 100%; padding: 14px;
-      background: var(--clr-primary); color: #fff;
-      border: none; border-radius: 12px; font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: opacity .15s;
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity .15s;
     }
-    #btn-login:active { opacity: .8; }
-    #login-err { color: #f87171; font-size: .85rem; min-height: 18px; }
+    .auth-submit-btn:active { opacity: .8; }
+    #btn-login    { background: var(--clr-primary); }
+    #btn-register { background: #10b981; }
+    .auth-err { color: #f87171; font-size: .85rem; min-height: 18px; }
+    .auth-ok  { color: #34d399; font-size: .85rem; min-height: 18px; }
+    .auth-hint { color: #4e5d80; font-size: .72rem; }
 
     /* ── Topbar ───────────────────────────── */
     #topbar {
@@ -441,11 +454,31 @@
   <!-- Login Overlay -->
   <div id="login-overlay">
     <h1>💰 快速記帳</h1>
-    <p>請登入以開始記錄收支</p>
-    <input id="inp-user" class="login-field" type="text" placeholder="帳號" autocomplete="username"/>
-    <input id="inp-pass" class="login-field" type="password" placeholder="密碼" autocomplete="current-password"/>
-    <div id="login-err"></div>
-    <button id="btn-login">登入</button>
+
+    <!-- 登入 / 註冊 tab -->
+    <div class="auth-tabs">
+      <button class="auth-tab-btn active" id="ql-tab-login" onclick="switchQlTab('login')">登入</button>
+      <button class="auth-tab-btn" id="ql-tab-register" onclick="switchQlTab('register')" style="display:none">註冊</button>
+    </div>
+
+    <!-- 登入表單 -->
+    <div id="ql-login-form" style="width:100%;display:flex;flex-direction:column;gap:12px">
+      <input id="inp-user" class="login-field" type="text" placeholder="帳號" autocomplete="username"/>
+      <input id="inp-pass" class="login-field" type="password" placeholder="密碼" autocomplete="current-password"/>
+      <div id="login-err" class="auth-err"></div>
+      <button id="btn-login" class="auth-submit-btn">登入</button>
+    </div>
+
+    <!-- 註冊表單 -->
+    <div id="ql-register-form" style="width:100%;display:none;flex-direction:column;gap:10px">
+      <input id="reg-user"    class="login-field" type="text"     placeholder="帳號（英數字，3-32 字）" autocomplete="off"/>
+      <input id="reg-name"    class="login-field" type="text"     placeholder="顯示名稱（選填）"/>
+      <input id="reg-pw"      class="login-field" type="password" placeholder="密碼（至少 6 碼）" autocomplete="new-password"/>
+      <input id="reg-pw2"     class="login-field" type="password" placeholder="確認密碼" autocomplete="new-password"/>
+      <div id="register-err" class="auth-err"></div>
+      <div id="register-ok"  class="auth-ok"></div>
+      <button id="btn-register" class="auth-submit-btn">建立帳號</button>
+    </div>
   </div>
 
   <!-- Topbar -->
@@ -1122,6 +1155,75 @@ async function handleLogin() {
 }
 
 // ══════════════════════════════════════════════════════════
+// Register (quick page)
+// ══════════════════════════════════════════════════════════
+function switchQlTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('ql-login-form').style.display    = isLogin ? 'flex' : 'none';
+  document.getElementById('ql-register-form').style.display = isLogin ? 'none' : 'flex';
+  document.getElementById('ql-tab-login').classList.toggle('active',    isLogin);
+  document.getElementById('ql-tab-register').classList.toggle('active', !isLogin);
+}
+
+async function checkRegisterEnabledQl() {
+  try {
+    const res  = await fetch('/auth/register-status');
+    const json = await res.json();
+    if (json.enabled) {
+      document.getElementById('ql-tab-register').style.display = '';
+    }
+  } catch (_) {}
+}
+
+async function handleRegister() {
+  const username = document.getElementById('reg-user').value.trim();
+  const name     = document.getElementById('reg-name').value.trim();
+  const pw       = document.getElementById('reg-pw').value;
+  const pw2      = document.getElementById('reg-pw2').value;
+  const errEl    = document.getElementById('register-err');
+  const okEl     = document.getElementById('register-ok');
+
+  errEl.textContent = ''; okEl.textContent = '';
+
+  if (!username || !pw) { errEl.textContent = '帳號和密碼為必填'; return; }
+  if (pw !== pw2)       { errEl.textContent = '兩次密碼不一致';   return; }
+  if (pw.length < 6)    { errEl.textContent = '密碼至少 6 個字元'; return; }
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 建立中…';
+
+  try {
+    const res  = await fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, display_name: name, password: pw, confirm_password: pw2 }),
+    });
+    const d = await res.json();
+    if (!d.success) throw new Error(d.message || '註冊失敗');
+
+    S.token       = d.token;
+    S.username    = d.username;
+    S.displayName = d.display_name || d.username;
+    localStorage.setItem('finance_token',        S.token);
+    localStorage.setItem('finance_username',     S.username);
+    localStorage.setItem('finance_display_name', S.displayName);
+
+    okEl.textContent = `歡迎 ${S.displayName}！`;
+    haptic([40, 20, 60]);
+    setTimeout(() => {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('topbar-user').textContent = S.displayName || S.username;
+      loadCategories();
+    }, 600);
+  } catch(e) {
+    errEl.textContent = e.message;
+    btn.disabled = false;
+    btn.textContent = '建立帳號';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 // Event bindings
 // ══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
@@ -1194,11 +1296,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') handleLogin();
   });
 
+  // register
+  document.getElementById('btn-register').addEventListener('click', handleRegister);
+  document.getElementById('reg-pw2').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleRegister();
+  });
+
   // init
   if (S.token) {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('topbar-user').textContent = S.displayName || S.username;
     loadCategories();
+  } else {
+    checkRegisterEnabledQl();
   }
 
   // set today as default custom date

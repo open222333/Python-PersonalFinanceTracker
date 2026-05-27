@@ -124,25 +124,67 @@
 ════════════════════════════════════ -->
 <div id="page-login">
   <div class="card login-card shadow-lg p-4">
-    <div class="text-center mb-4">
+    <div class="text-center mb-3">
       <div class="login-logo">💰</div>
       <h4 class="fw-bold mt-2">個人理財追蹤系統</h4>
-      <p class="text-muted small">請登入以繼續</p>
     </div>
-    <div id="login-error" class="alert alert-danger py-2 d-none"></div>
-    <div class="mb-3">
-      <label class="form-label small fw-semibold">使用者名稱</label>
-      <input id="login-username" type="text" class="form-control" placeholder="admin"
-             onkeydown="if(event.key==='Enter') doLogin()">
+
+    <!-- 登入 / 註冊 tab -->
+    <ul class="nav nav-pills nav-fill mb-3" id="auth-tabs">
+      <li class="nav-item">
+        <button class="nav-link active" id="tab-login-btn" onclick="switchAuthTab('login')">登入</button>
+      </li>
+      <li class="nav-item" id="tab-register-li" style="display:none">
+        <button class="nav-link" id="tab-register-btn" onclick="switchAuthTab('register')">註冊</button>
+      </li>
+    </ul>
+
+    <!-- 登入表單 -->
+    <div id="auth-login-form">
+      <div id="login-error" class="alert alert-danger py-2 d-none"></div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">使用者名稱</label>
+        <input id="login-username" type="text" class="form-control" placeholder="admin"
+               onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <div class="mb-4">
+        <label class="form-label small fw-semibold">密碼</label>
+        <input id="login-password" type="password" class="form-control" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="btn btn-primary w-100 fw-semibold" onclick="doLogin()">
+        <i class="bi bi-box-arrow-in-right me-1"></i>登入
+      </button>
     </div>
-    <div class="mb-4">
-      <label class="form-label small fw-semibold">密碼</label>
-      <input id="login-password" type="password" class="form-control" placeholder="••••••••"
-             onkeydown="if(event.key==='Enter') doLogin()">
+
+    <!-- 註冊表單 -->
+    <div id="auth-register-form" style="display:none">
+      <div id="register-error" class="alert alert-danger py-2 d-none"></div>
+      <div id="register-success" class="alert alert-success py-2 d-none"></div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">使用者名稱 <span class="text-danger">*</span></label>
+        <input id="reg-username" type="text" class="form-control" placeholder="3–32 字元，英數字／底線"
+               onkeydown="if(event.key==='Enter') doRegister()">
+        <div class="form-text">只允許英文字母、數字、底線 (_)、連字號 (-)</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">顯示名稱（選填）</label>
+        <input id="reg-display-name" type="text" class="form-control" placeholder="你的暱稱">
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">密碼 <span class="text-danger">*</span></label>
+        <input id="reg-password" type="password" class="form-control" placeholder="至少 6 個字元"
+               onkeydown="if(event.key==='Enter') doRegister()">
+      </div>
+      <div class="mb-4">
+        <label class="form-label small fw-semibold">確認密碼 <span class="text-danger">*</span></label>
+        <input id="reg-confirm" type="password" class="form-control" placeholder="再次輸入密碼"
+               onkeydown="if(event.key==='Enter') doRegister()">
+      </div>
+      <button class="btn btn-success w-100 fw-semibold" onclick="doRegister()">
+        <i class="bi bi-person-plus me-1"></i>建立帳號
+      </button>
     </div>
-    <button class="btn btn-primary w-100 fw-semibold" onclick="doLogin()">
-      <i class="bi bi-box-arrow-in-right me-1"></i>登入
-    </button>
   </div>
 </div>
 
@@ -1503,6 +1545,25 @@ async function apiFetch(url, options = {}) {
   return res;
 }
 
+// ── 登入 / 註冊 tab 切換 ──────────────────────────────
+function switchAuthTab(tab) {
+  const isLogin = (tab === 'login');
+  document.getElementById('auth-login-form').style.display    = isLogin ? '' : 'none';
+  document.getElementById('auth-register-form').style.display = isLogin ? 'none' : '';
+  document.getElementById('tab-login-btn').classList.toggle('active',    isLogin);
+  document.getElementById('tab-register-btn').classList.toggle('active', !isLogin);
+}
+
+async function checkRegisterEnabled() {
+  try {
+    const res  = await fetch('/auth/register-status');
+    const json = await res.json();
+    if (json.enabled) {
+      document.getElementById('tab-register-li').style.display = '';
+    }
+  } catch (_) {}
+}
+
 // ── 登入 / 登出 ───────────────────────────────────────
 async function doLogin() {
   const username = document.getElementById('login-username').value.trim();
@@ -1537,6 +1598,63 @@ async function doLogin() {
   } catch (e) {
     errEl.textContent = '連線失敗，請確認伺服器狀態';
     errEl.classList.remove('d-none');
+  }
+}
+
+async function doRegister() {
+  const username    = document.getElementById('reg-username').value.trim();
+  const displayName = document.getElementById('reg-display-name').value.trim();
+  const password    = document.getElementById('reg-password').value;
+  const confirm     = document.getElementById('reg-confirm').value;
+  const errEl       = document.getElementById('register-error');
+  const okEl        = document.getElementById('register-success');
+
+  errEl.classList.add('d-none');
+  okEl.classList.add('d-none');
+
+  if (!username || !password || !confirm) {
+    errEl.textContent = '請填寫所有必填欄位';
+    errEl.classList.remove('d-none'); return;
+  }
+  if (password !== confirm) {
+    errEl.textContent = '兩次密碼輸入不一致';
+    errEl.classList.remove('d-none'); return;
+  }
+  if (password.length < 6) {
+    errEl.textContent = '密碼長度至少 6 個字元';
+    errEl.classList.remove('d-none'); return;
+  }
+
+  const btn = document.querySelector('#auth-register-form button');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>建立中…';
+
+  try {
+    const res  = await fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, display_name: displayName, password, confirm_password: confirm }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      localStorage.setItem(TOKEN_KEY,        json.token);
+      localStorage.setItem(USERNAME_KEY,     json.username || username);
+      localStorage.setItem(USER_ID_KEY,      json.user_id  || '');
+      localStorage.setItem(DISPLAY_NAME_KEY, json.display_name || '');
+      localStorage.setItem(ROLE_KEY,         json.role     || 'user');
+      okEl.textContent = `歡迎 ${json.display_name || username}！帳號建立成功，正在進入…`;
+      okEl.classList.remove('d-none');
+      setTimeout(() => { updateUserInfo(); enterDashboard(); }, 800);
+    } else {
+      errEl.textContent = json.message || '註冊失敗';
+      errEl.classList.remove('d-none');
+    }
+  } catch (e) {
+    errEl.textContent = '連線失敗，請確認伺服器狀態';
+    errEl.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-person-plus me-1"></i>建立帳號';
   }
 }
 
@@ -3169,6 +3287,9 @@ function doExport(type, fmt) {
   // 自動登入
   if (getToken()) {
     enterDashboard();
+  } else {
+    // 查詢是否開放自助註冊，決定是否顯示「註冊」tab
+    checkRegisterEnabled();
   }
 })();
 </script>
