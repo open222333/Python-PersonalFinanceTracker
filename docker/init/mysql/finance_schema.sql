@@ -4,6 +4,7 @@
 -- 分類表
 CREATE TABLE IF NOT EXISTS finance_categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT DEFAULT NULL COMMENT '所屬使用者（NULL=系統預設）',
     name VARCHAR(50) NOT NULL,
     type ENUM('income', 'expense') NOT NULL COMMENT '收入/支出',
     color VARCHAR(20) DEFAULT '#808080',
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS finance_categories (
 -- 收支記錄表
 CREATE TABLE IF NOT EXISTS finance_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT DEFAULT NULL COMMENT '所屬使用者',
     date DATE NOT NULL,
     type ENUM('income', 'expense') NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
@@ -27,6 +29,7 @@ CREATE TABLE IF NOT EXISTS finance_transactions (
 -- 股票交易表
 CREATE TABLE IF NOT EXISTS finance_stocks (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT DEFAULT NULL COMMENT '所屬使用者',
     date DATE NOT NULL,
     ticker VARCHAR(20) NOT NULL COMMENT '股票代號',
     company_name VARCHAR(100) DEFAULT '',
@@ -44,18 +47,20 @@ CREATE TABLE IF NOT EXISTS finance_stocks (
 -- 預算表
 CREATE TABLE IF NOT EXISTS finance_budgets (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT DEFAULT NULL COMMENT '所屬使用者',
     category_id INT NOT NULL,
     year INT NOT NULL,
     month INT NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_budget (category_id, year, month),
+    UNIQUE KEY uq_budget (user_id, category_id, year, month),
     FOREIGN KEY (category_id) REFERENCES finance_categories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每月預算';
 
 -- 週期固定收入設定
 CREATE TABLE IF NOT EXISTS finance_recurring_income (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT DEFAULT NULL COMMENT '所屬使用者',
     name VARCHAR(100) NOT NULL COMMENT '項目名稱',
     amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '金額',
     frequency ENUM('yearly','monthly','weekly','daily','hourly') NOT NULL DEFAULT 'monthly' COMMENT '週期',
@@ -77,6 +82,7 @@ CREATE TABLE IF NOT EXISTS finance_recurring_income (
 -- 勞健保設定
 CREATE TABLE IF NOT EXISTS finance_insurance_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT DEFAULT NULL COMMENT '所屬使用者',
     monthly_salary DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '月薪',
     labor_insured_salary DECIMAL(10,2) DEFAULT NULL COMMENT '勞保投保薪資（NULL=自動對應級距）',
     labor_rate DECIMAL(6,4) NOT NULL DEFAULT 2.4000 COMMENT '勞保員工負擔率 %（費率×員工比例）',
@@ -105,5 +111,6 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='使用者帳號';
 
--- ── 各 finance 表加入 user_id（新安裝時執行，升級用 ALTER TABLE）──
--- （新容器初始化時，由 docker-entrypoint-initdb.d 建立，欄位定義已含 user_id）
+-- ── 舊資料庫升級用 ALTER TABLE（已含 user_id 的新安裝可忽略）──
+-- 若資料庫已存在且缺少 user_id 欄位，請執行以下 migration 指令：
+--   mysql -u flask_user -pflask_password flask_app < docker/init/mysql/migrate_add_user_id.sql

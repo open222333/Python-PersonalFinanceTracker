@@ -2497,7 +2497,7 @@ async function saveUser() {
 
   const method = id ? 'PUT' : 'POST';
   const url    = id ? `/user/${id}` : '/user/';
-  const res    = await apiFetch(url, { method, body: JSON.stringify(body) });
+  const res    = await apiFetch(url, { method, body });   // body 為 object，apiFetch 自動 stringify + 加 Content-Type
   if (!res) return;
   const data   = await res.json();
   if (data.success) {
