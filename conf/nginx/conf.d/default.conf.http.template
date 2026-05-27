@@ -20,6 +20,16 @@ server {
     access_log  /var/log/nginx/access.log;
     error_log   /var/log/nginx/error.log;
 
+    # 根路徑 / → /finance/
+    location = / {
+        return 301 /finance/;
+    }
+
+    # /admin 或 /admin/* → /finance/
+    location ~ ^/admin(/.*)?$ {
+        return 301 /finance/;
+    }
+
     location / {
         proxy_pass         http://flask_app;
         proxy_http_version 1.1;
