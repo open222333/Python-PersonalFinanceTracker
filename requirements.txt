@@ -16,3 +16,4 @@ openpyxl>=3.1.0
 DBUtils>=2.0.0
 # 開發用：讓 Werkzeug reloader 使用更高效的 watchdog，減少 polling 延遲
 watchdog>=3.0.0
+python-dotenv>=1.0.0

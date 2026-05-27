@@ -28,6 +28,12 @@ services:
     image: python-flask-api:latest
     hostname: flask-api
     env_file: .env
+    environment:
+      FLASK_PORT: "${FLASK_PORT:-5000}"
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    expose:
+      - "${FLASK_PORT:-5000}"
     volumes:
       - ./app:/app/app
       - ./src:/app/src

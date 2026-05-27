@@ -2,6 +2,13 @@ import json
 import secrets
 from os.path import join
 
+# 本機開發：自動載入 .env（Docker 不影響，docker-compose 已透過 env_file 注入）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 _FLASK_JSON_PATH = join('conf', 'flask.json')
 with open(_FLASK_JSON_PATH, 'r') as _f:
     _flask_conf = json.load(_f)
