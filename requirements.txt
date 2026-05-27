@@ -8,6 +8,7 @@ pymongo==4.10.1
 bcrypt==4.2.1
 flask-jwt-extended==4.7.1
 PyMySQL==1.1.1
+cryptography>=41.0.0   # MySQL 8.0 caching_sha2_password 驗證必要
 redis==5.2.1
 # 理財追蹤系統新增套件
 pandas>=2.0.0
