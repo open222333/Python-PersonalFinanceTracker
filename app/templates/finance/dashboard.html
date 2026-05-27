@@ -143,6 +143,10 @@
         <input id="login-password" type="password" class="form-control" placeholder="••••••••"
                onkeydown="if(event.key==='Enter') doLogin()">
       </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="chk-remember">
+        <label class="form-check-label small text-muted" for="chk-remember">記住我 30 天</label>
+      </div>
       <button class="btn btn-primary w-100 fw-semibold mb-3" onclick="doLogin()">
         <i class="bi bi-box-arrow-in-right me-1"></i>登入
       </button>
@@ -1473,6 +1477,7 @@ const USERNAME_KEY     = 'finance_user';
 const USER_ID_KEY      = 'finance_user_id';
 const DISPLAY_NAME_KEY = 'finance_display_name';
 const ROLE_KEY         = 'finance_role';
+const TOKEN_EXPIRES_KEY = 'finance_token_expires';  // Unix ms 時間戳
 let allCategories = [];   // 快取分類清單
 let txPage = 1, txTotal = 0;
 let skPage = 1;
@@ -1480,7 +1485,34 @@ let chartTrend = null, chartPie = null, chartYearly = null, chartCatPie = null, 
 const now = new Date();
 
 // ── 工具函式 ──────────────────────────────────────────
-const getToken       = ()  => localStorage.getItem(TOKEN_KEY);
+function getToken() {
+  const token   = localStorage.getItem(TOKEN_KEY);
+  const expires = localStorage.getItem(TOKEN_EXPIRES_KEY);
+  if (!token) return null;
+  if (expires && Date.now() > parseInt(expires, 10)) {
+    // token 已超過前端設定的過期時間 → 清除並強制登出
+    clearAuth();
+    return null;
+  }
+  return token;
+}
+function clearAuth() {
+  [TOKEN_KEY, USERNAME_KEY, USER_ID_KEY, DISPLAY_NAME_KEY, ROLE_KEY, TOKEN_EXPIRES_KEY]
+    .forEach(k => localStorage.removeItem(k));
+}
+function saveAuth(json, expiresSeconds) {
+  localStorage.setItem(TOKEN_KEY,         json.token);
+  localStorage.setItem(USERNAME_KEY,      json.username    || '');
+  localStorage.setItem(USER_ID_KEY,       json.user_id     || '');
+  localStorage.setItem(DISPLAY_NAME_KEY,  json.display_name|| '');
+  localStorage.setItem(ROLE_KEY,          json.role        || 'user');
+  // 過期時間戳（ms）；無 expiresSeconds → 不設上限（Session 模式）
+  if (expiresSeconds) {
+    localStorage.setItem(TOKEN_EXPIRES_KEY, String(Date.now() + expiresSeconds * 1000));
+  } else {
+    localStorage.removeItem(TOKEN_EXPIRES_KEY);
+  }
+}
 const getUser        = ()  => localStorage.getItem(USERNAME_KEY);
 const getCurrentRole = ()  => localStorage.getItem(ROLE_KEY) || 'user';
 const isAdmin        = ()  => getCurrentRole() === 'admin';
@@ -1580,15 +1612,14 @@ async function doLogin() {
     const res = await fetch('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({
+        username, password,
+        remember: document.getElementById('chk-remember').checked,
+    }),
     });
     const json = await res.json();
     if (json.success) {
-      localStorage.setItem(TOKEN_KEY,        json.token);
-      localStorage.setItem(USERNAME_KEY,     json.username || username);
-      localStorage.setItem(USER_ID_KEY,      json.user_id  || '');
-      localStorage.setItem(DISPLAY_NAME_KEY, json.display_name || '');
-      localStorage.setItem(ROLE_KEY,         json.role     || 'user');
+      saveAuth(json, json.expires_seconds || null);
       updateUserInfo();
       enterDashboard();
     } else {
@@ -1637,11 +1668,7 @@ async function doRegister() {
     });
     const json = await res.json();
     if (json.success) {
-      localStorage.setItem(TOKEN_KEY,        json.token);
-      localStorage.setItem(USERNAME_KEY,     json.username || username);
-      localStorage.setItem(USER_ID_KEY,      json.user_id  || '');
-      localStorage.setItem(DISPLAY_NAME_KEY, json.display_name || '');
-      localStorage.setItem(ROLE_KEY,         json.role     || 'user');
+      saveAuth(json, null);   // 註冊後不套用記住我，使用預設 session 時效
       okEl.textContent = `歡迎 ${json.display_name || username}！帳號建立成功，正在進入…`;
       okEl.classList.remove('d-none');
       setTimeout(() => { updateUserInfo(); enterDashboard(); }, 800);
@@ -1659,13 +1686,10 @@ async function doRegister() {
 }
 
 function doLogout() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USERNAME_KEY);
-  localStorage.removeItem(USER_ID_KEY);
-  localStorage.removeItem(DISPLAY_NAME_KEY);
-  localStorage.removeItem(ROLE_KEY);
+  clearAuth();
   document.getElementById('page-dashboard').style.display = 'none';
   document.getElementById('page-login').style.display = 'flex';
+  switchAuthTab('login');
 }
 
 function enterDashboard() {

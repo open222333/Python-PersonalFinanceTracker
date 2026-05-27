@@ -449,6 +449,10 @@
     <div id="ql-login-form" style="width:100%;display:flex;flex-direction:column;gap:12px">
       <input id="inp-user" class="login-field" type="text" placeholder="帳號" autocomplete="username"/>
       <input id="inp-pass" class="login-field" type="password" placeholder="密碼" autocomplete="current-password"/>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:2px">
+        <input id="chk-remember-ql" type="checkbox" style="width:18px;height:18px;accent-color:var(--clr-primary)"/>
+        <span style="color:#8899bb;font-size:.82rem">記住我 30 天</span>
+      </label>
       <div id="login-err" class="auth-err"></div>
       <button id="btn-login" class="auth-submit-btn">登入</button>
       <div style="text-align:center;margin-top:4px">
@@ -636,8 +640,35 @@
 // ══════════════════════════════════════════════════════════
 // State
 // ══════════════════════════════════════════════════════════
+const QL_KEYS = {
+  token:    'finance_token',
+  username: 'finance_username',
+  name:     'finance_display_name',
+  expires:  'finance_token_expires',
+};
+function qlTokenValid() {
+  const token   = localStorage.getItem(QL_KEYS.token);
+  const expires = localStorage.getItem(QL_KEYS.expires);
+  if (!token) return false;
+  if (expires && Date.now() > parseInt(expires, 10)) {
+    Object.values(QL_KEYS).forEach(k => localStorage.removeItem(k));
+    return false;
+  }
+  return true;
+}
+function qlSaveAuth(d, expiresSeconds) {
+  localStorage.setItem(QL_KEYS.token,    d.token);
+  localStorage.setItem(QL_KEYS.username, d.username    || '');
+  localStorage.setItem(QL_KEYS.name,     d.display_name|| '');
+  if (expiresSeconds) {
+    localStorage.setItem(QL_KEYS.expires, String(Date.now() + expiresSeconds * 1000));
+  } else {
+    localStorage.removeItem(QL_KEYS.expires);
+  }
+}
+
 const S = {
-  token:      localStorage.getItem('finance_token') || '',
+  token:      qlTokenValid() ? (localStorage.getItem('finance_token') || '') : '',
   username:   localStorage.getItem('finance_username') || '',
   displayName:localStorage.getItem('finance_display_name') || '',
   // ── txn mode ───────────────────────
@@ -713,29 +744,26 @@ async function apiFetch(path, opts = {}) {
   return res.json();
 }
 
-async function doLogin(username, password) {
+async function doLogin(username, password, remember = false) {
   const r = await fetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, remember }),
   });
   const d = await r.json();
   if (!d.success) throw new Error(d.message || '登入失敗');
   S.token       = d.token;
   S.username    = d.username;
   S.displayName = d.display_name || d.username;
-  localStorage.setItem('finance_token',        S.token);
-  localStorage.setItem('finance_username',     S.username);
-  localStorage.setItem('finance_display_name', S.displayName);
+  qlSaveAuth(d, d.expires_seconds || null);
   return d;
 }
 
 function logout() {
   S.token = ''; S.username = ''; S.displayName = '';
-  localStorage.removeItem('finance_token');
-  localStorage.removeItem('finance_username');
-  localStorage.removeItem('finance_display_name');
+  Object.values(QL_KEYS).forEach(k => localStorage.removeItem(k));
   document.getElementById('login-overlay').style.display = 'flex';
+  switchQlTab('login');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1140,7 +1168,8 @@ async function handleLogin() {
   btn.innerHTML = '<span class="spinner"></span> 登入中…';
   err.textContent = '';
   try {
-    await doLogin(user, pass);
+    const remember = document.getElementById('chk-remember-ql').checked;
+    await doLogin(user, pass, remember);
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('topbar-user').textContent = S.displayName || S.username;
     await loadCategories();
@@ -1197,9 +1226,7 @@ async function handleRegister() {
     S.token       = d.token;
     S.username    = d.username;
     S.displayName = d.display_name || d.username;
-    localStorage.setItem('finance_token',        S.token);
-    localStorage.setItem('finance_username',     S.username);
-    localStorage.setItem('finance_display_name', S.displayName);
+    qlSaveAuth(d, null);   // 註冊後使用預設時效，不套用記住我
 
     okEl.textContent = `歡迎 ${S.displayName}！`;
     haptic([40, 20, 60]);
@@ -1294,7 +1321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') handleRegister();
   });
 
-  // init
+  // init：S.token 已在宣告時透過 qlTokenValid() 過濾過期 token
   if (S.token) {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('topbar-user').textContent = S.displayName || S.username;

@@ -13,6 +13,7 @@ url_prefix: /auth
 import os
 import re
 import logging
+from datetime import timedelta
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
     jwt_required, get_jwt_identity,
@@ -20,6 +21,8 @@ from flask_jwt_extended import (
 )
 from src.models.user import User
 from src.permissions import get_current_user_id
+
+REMEMBER_ME_DAYS = 30
 
 logger = logging.getLogger(__name__)
 app_auth = Blueprint('auth', __name__)
@@ -33,14 +36,17 @@ def _is_register_enabled() -> bool:
     return os.environ.get('REGISTER_ENABLED', 'false').lower() in ('1', 'true', 'yes')
 
 
-def _make_token(user: dict) -> str:
+def _make_token(user: dict, remember: bool = False) -> str:
+    expires = timedelta(days=REMEMBER_ME_DAYS) if remember else None  # None → 使用 config 預設
     return create_access_token(
         identity=str(user['id']),
         additional_claims={
             'role':         user['role'],
             'username':     user['username'],
             'display_name': user.get('display_name') or '',
+            'remember':     remember,
         },
+        expires_delta=expires,
     )
 
 
@@ -109,6 +115,7 @@ def login():
 
     username = data.get('username', '').strip()
     password = data.get('password', '')
+    remember = bool(data.get('remember', False))
     if not username or not password:
         return jsonify({'success': False, 'message': 'username 或 password 不得為空'}), 400
 
@@ -118,17 +125,22 @@ def login():
     if not User.check_password(password, user['password']):
         return jsonify({'success': False, 'message': '帳號或密碼錯誤'}), 401
 
-    token = _make_token(user)
+    token = _make_token(user, remember=remember)
     User.update_last_login(user['id'])
-    logger.info(f'[auth] 使用者登入：{username} (id={user["id"]}, role={user["role"]})')
+    logger.info(f'[auth] 使用者登入：{username} (id={user["id"]}, role={user["role"]}, remember={remember})')
+
+    import os
+    from src import JWT_ACCESS_TOKEN_EXPIRES_HOURS
+    expires_seconds = REMEMBER_ME_DAYS * 86400 if remember else JWT_ACCESS_TOKEN_EXPIRES_HOURS * 3600
 
     return jsonify({
-        'success':      True,
-        'token':        token,
-        'user_id':      user['id'],
-        'username':     user['username'],
-        'display_name': user.get('display_name') or '',
-        'role':         user['role'],
+        'success':         True,
+        'token':           token,
+        'user_id':         user['id'],
+        'username':        user['username'],
+        'display_name':    user.get('display_name') or '',
+        'role':            user['role'],
+        'expires_seconds': expires_seconds,   # 前端用來設 localStorage 過期時間
     })
 
 
