@@ -124,20 +124,11 @@
 ════════════════════════════════════ -->
 <div id="page-login">
   <div class="card login-card shadow-lg p-4">
-    <div class="text-center mb-3">
+    <div class="text-center mb-4">
       <div class="login-logo">💰</div>
       <h4 class="fw-bold mt-2">個人理財追蹤系統</h4>
+      <p class="text-muted small mb-0" id="auth-subtitle">請登入以繼續</p>
     </div>
-
-    <!-- 登入 / 註冊 tab -->
-    <ul class="nav nav-pills nav-fill mb-3" id="auth-tabs">
-      <li class="nav-item">
-        <button class="nav-link active" id="tab-login-btn" onclick="switchAuthTab('login')">登入</button>
-      </li>
-      <li class="nav-item" id="tab-register-li" style="display:none">
-        <button class="nav-link" id="tab-register-btn" onclick="switchAuthTab('register')">註冊</button>
-      </li>
-    </ul>
 
     <!-- 登入表單 -->
     <div id="auth-login-form">
@@ -147,14 +138,21 @@
         <input id="login-username" type="text" class="form-control" placeholder="admin"
                onkeydown="if(event.key==='Enter') doLogin()">
       </div>
-      <div class="mb-4">
+      <div class="mb-3">
         <label class="form-label small fw-semibold">密碼</label>
         <input id="login-password" type="password" class="form-control" placeholder="••••••••"
                onkeydown="if(event.key==='Enter') doLogin()">
       </div>
-      <button class="btn btn-primary w-100 fw-semibold" onclick="doLogin()">
+      <button class="btn btn-primary w-100 fw-semibold mb-3" onclick="doLogin()">
         <i class="bi bi-box-arrow-in-right me-1"></i>登入
       </button>
+      <div class="text-center">
+        <small class="text-muted">還沒有帳號？
+          <a href="#" class="text-decoration-none fw-semibold" onclick="switchAuthTab('register');return false;">
+            立即註冊 <i class="bi bi-arrow-right-short"></i>
+          </a>
+        </small>
+      </div>
     </div>
 
     <!-- 註冊表單 -->
@@ -176,14 +174,21 @@
         <input id="reg-password" type="password" class="form-control" placeholder="至少 6 個字元"
                onkeydown="if(event.key==='Enter') doRegister()">
       </div>
-      <div class="mb-4">
+      <div class="mb-3">
         <label class="form-label small fw-semibold">確認密碼 <span class="text-danger">*</span></label>
         <input id="reg-confirm" type="password" class="form-control" placeholder="再次輸入密碼"
                onkeydown="if(event.key==='Enter') doRegister()">
       </div>
-      <button class="btn btn-success w-100 fw-semibold" onclick="doRegister()">
+      <button class="btn btn-success w-100 fw-semibold mb-3" onclick="doRegister()">
         <i class="bi bi-person-plus me-1"></i>建立帳號
       </button>
+      <div class="text-center">
+        <small class="text-muted">已有帳號？
+          <a href="#" class="text-decoration-none fw-semibold" onclick="switchAuthTab('login');return false;">
+            <i class="bi bi-arrow-left-short"></i> 返回登入
+          </a>
+        </small>
+      </div>
     </div>
   </div>
 </div>
@@ -1545,23 +1550,18 @@ async function apiFetch(url, options = {}) {
   return res;
 }
 
-// ── 登入 / 註冊 tab 切換 ──────────────────────────────
+// ── 登入 / 註冊 切換 ──────────────────────────────────
 function switchAuthTab(tab) {
   const isLogin = (tab === 'login');
   document.getElementById('auth-login-form').style.display    = isLogin ? '' : 'none';
   document.getElementById('auth-register-form').style.display = isLogin ? 'none' : '';
-  document.getElementById('tab-login-btn').classList.toggle('active',    isLogin);
-  document.getElementById('tab-register-btn').classList.toggle('active', !isLogin);
-}
-
-async function checkRegisterEnabled() {
-  try {
-    const res  = await fetch('/auth/register-status');
-    const json = await res.json();
-    if (json.enabled) {
-      document.getElementById('tab-register-li').style.display = '';
-    }
-  } catch (_) {}
+  document.getElementById('auth-subtitle').textContent =
+    isLogin ? '請登入以繼續' : '建立您的帳號';
+  // 清除舊訊息
+  ['login-error','register-error','register-success'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('d-none');
+  });
 }
 
 // ── 登入 / 登出 ───────────────────────────────────────
@@ -3287,9 +3287,6 @@ function doExport(type, fmt) {
   // 自動登入
   if (getToken()) {
     enterDashboard();
-  } else {
-    // 查詢是否開放自助註冊，決定是否顯示「註冊」tab
-    checkRegisterEnabled();
   }
 })();
 </script>
