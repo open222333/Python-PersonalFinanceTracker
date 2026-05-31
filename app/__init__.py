@@ -16,6 +16,7 @@ from app.finance.report.view import app_finance_report
 from app.finance.yuanta.view import app_finance_yuanta
 from app.finance.recurring.view import app_finance_recurring
 from app.finance.quick.view import app_finance_quick
+from app.docs.view import app_docs
 from src import FLASK_JSON_PATH
 import json
 
@@ -78,6 +79,7 @@ def create_app(confgi_object=None):
     app.register_blueprint(blueprint=app_finance_yuanta,    url_prefix='/finance/yuanta')
     app.register_blueprint(blueprint=app_finance_recurring, url_prefix='/finance/recurring')
     app.register_blueprint(blueprint=app_finance_quick,     url_prefix='/finance/quick')
+    app.register_blueprint(blueprint=app_docs,             url_prefix='/docs')
     if confgi_object:
         app.config.from_object(confgi_object)
     return app

@@ -18,7 +18,7 @@
 # 注意：ssl_certificate 路徑含域名部分需手動修改，無法透過 ${DOMAIN} 自動替換
 # ============================================================
 upstream flask_app {
-    server app:5000;
+    server app:${FLASK_PORT};
 }
 
 # HTTP → HTTPS 強制導向（同時提供 certbot webroot 驗證）

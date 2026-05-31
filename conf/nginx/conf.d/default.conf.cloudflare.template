@@ -13,7 +13,7 @@
 #   3. SSL/TLS 模式改為「Full (Strict)」以確保端到端加密
 # ============================================================
 upstream flask_app {
-    server app:5000;
+    server app:${FLASK_PORT};
 }
 
 # HTTP → HTTPS 強制導向

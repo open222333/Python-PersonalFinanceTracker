@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>系統使用說明 — 個人理財追蹤系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root { --sidebar-w: 270px; --accent: #3b82f6; }
+    body { background: #f8f9fa; color: #1e293b; }
+
+    /* ── 側欄 ── */
+    #sidebar {
+      position: fixed; top: 0; left: 0;
+      width: var(--sidebar-w); height: 100vh;
+      overflow-y: auto; background: #0f172a; color: #cbd5e1;
+      z-index: 100; padding: 0;
+    }
+    #sidebar .brand {
+      font-size: .95rem; font-weight: 700; color: #f1f5f9;
+      padding: 1.25rem 1.25rem .9rem; border-bottom: 1px solid #1e293b;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    #sidebar .nav-section {
+      font-size: .65rem; font-weight: 700; letter-spacing: .1em;
+      color: #475569; padding: .9rem 1.25rem .2rem; text-transform: uppercase;
+    }
+    #sidebar .nav-link {
+      color: #94a3b8; font-size: .82rem;
+      padding: .3rem 1.25rem; display: block; text-decoration: none;
+    }
+    #sidebar .nav-link:hover { color: #f1f5f9; background: #1e293b; }
+    #sidebar .nav-link.active { color: #fff; background: var(--accent); border-radius: 0; }
+
+    /* ── 主區 ── */
+    #main {
+      margin-left: var(--sidebar-w); padding: 2rem 2.5rem 4rem;
+      max-width: 980px;
+    }
+
+    /* ── 標題 ── */
+    h2.section-title {
+      font-size: 1.3rem; font-weight: 700;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: .5rem; margin-top: 3rem; margin-bottom: 1.25rem;
+      scroll-margin-top: 1rem;
+    }
+    h3.sub-title {
+      font-size: 1rem; font-weight: 600; color: #334155;
+      margin-top: 1.5rem; margin-bottom: .6rem; scroll-margin-top: 1rem;
+    }
+
+    /* ── 步驟清單 ── */
+    .step-list { counter-reset: step; padding-left: 0; list-style: none; }
+    .step-list li {
+      counter-increment: step; padding: .35rem 0 .35rem 2.4rem; position: relative;
+      font-size: .9rem;
+    }
+    .step-list li::before {
+      content: counter(step);
+      position: absolute; left: 0; top: .35rem;
+      background: var(--accent); color: #fff;
+      width: 1.4rem; height: 1.4rem; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700;
+    }
+
+    /* ── 提示框 ── */
+    .tip-box {
+      background: #eff6ff; border-left: 4px solid #3b82f6;
+      border-radius: 0 .5rem .5rem 0; padding: .65rem 1rem;
+      margin: .75rem 0; font-size: .875rem;
+    }
+    .warn-box {
+      background: #fffbeb; border-left: 4px solid #f59e0b;
+      border-radius: 0 .5rem .5rem 0; padding: .65rem 1rem;
+      margin: .75rem 0; font-size: .875rem;
+    }
+
+    /* ── URL 標籤 ── */
+    .url-pill {
+      display: inline-block; background: #1e293b; color: #7dd3fc;
+      font-family: monospace; font-size: .82rem;
+      padding: .15rem .55rem; border-radius: .3rem;
+    }
+
+    /* ── 表格 ── */
+    table.doc-table th { background: #f1f5f9; font-weight: 600; font-size: .82rem; }
+    table.doc-table td { font-size: .82rem; vertical-align: middle; }
+
+    /* ── Feature cards ── */
+    .fc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1rem; }
+    .fc {
+      border: 1px solid #e2e8f0; border-radius: .6rem;
+      padding: .85rem 1rem; background: #fff;
+    }
+    .fc .fc-title { font-weight: 600; font-size: .9rem; margin-bottom: .2rem; }
+    .fc .fc-desc  { font-size: .8rem; color: #64748b; }
+
+    code { background: #f1f5f9; padding: .1em .35em; border-radius: .25rem; font-size: .85em; }
+
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      #main { margin-left: 0; padding: 1rem; }
+      .fc-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════ 側欄 ══════════════════════════ -->
+<nav id="sidebar">
+  <div class="brand"><i class="bi bi-piggy-bank"></i>&nbsp;理財系統使用說明</div>
+
+  <div class="nav-section">入門</div>
+  <a class="nav-link" href="#overview">系統概覽</a>
+  <a class="nav-link" href="#urls">系統網址</a>
+  <a class="nav-link" href="#login">登入 / 帳號</a>
+
+  <div class="nav-section">收支管理</div>
+  <a class="nav-link" href="#transaction">收支記錄</a>
+  <a class="nav-link" href="#category">分類管理</a>
+  <a class="nav-link" href="#recurring">定期交易</a>
+
+  <div class="nav-section">股票管理</div>
+  <a class="nav-link" href="#stock">股票交易</a>
+  <a class="nav-link" href="#portfolio">持倉與損益</a>
+
+  <div class="nav-section">預算與報表</div>
+  <a class="nav-link" href="#budget">預算管理</a>
+  <a class="nav-link" href="#report">報表分析</a>
+  <a class="nav-link" href="#export">資料匯出</a>
+
+  <div class="nav-section">行動版</div>
+  <a class="nav-link" href="#quick">手機快速記帳</a>
+  <a class="nav-link" href="#quick-stock">快速股票紀錄</a>
+
+  <div class="nav-section">系統</div>
+  <a class="nav-link" href="#roles">角色與權限</a>
+  <a class="nav-link" href="#user-mgmt">使用者管理</a>
+</nav>
+
+<!-- ══════════════════════════ 主內容 ══════════════════════════ -->
+<main id="main">
+
+  <h1 class="fw-bold mb-1">個人理財追蹤系統</h1>
+  <p class="text-muted mb-0">系統使用說明文件</p>
+
+  <!-- ────────────────── 系統概覽 ────────────────── -->
+  <h2 class="section-title" id="overview">
+    <i class="bi bi-grid-1x2 me-2 text-primary"></i>系統概覽
+  </h2>
+  <div class="fc-grid">
+    <div class="fc">
+      <div class="fc-title"><i class="bi bi-arrow-left-right me-1 text-primary"></i>收支記錄</div>
+      <div class="fc-desc">新增 / 編輯 / 刪除收入與支出，支援日期、分類、關鍵字篩選與分頁</div>
+    </div>
+    <div class="fc">
+      <div class="fc-title"><i class="bi bi-graph-up-arrow me-1 text-success"></i>股票管理</div>
+      <div class="fc-desc">記錄買入 / 賣出 / 股利，自動計算持倉、平均成本、已實現損益</div>
+    </div>
+    <div class="fc">
+      <div class="fc-title"><i class="bi bi-tags me-1 text-info"></i>自訂分類</div>
+      <div class="fc-desc">支援收入 / 支出分類，含自訂顏色與 Bootstrap Icons 圖示</div>
+    </div>
+    <div class="fc">
+      <div class="fc-title"><i class="bi bi-wallet2 me-1 text-warning"></i>預算管理</div>
+      <div class="fc-desc">設定各分類每月預算，即時顯示使用率與超支警示（≥80% 黃色，>100% 紅色）</div>
+    </div>
+    <div class="fc">
+      <div class="fc-title"><i class="bi bi-bar-chart-line me-1 text-danger"></i>報表分析</div>
+      <div class="fc-desc">年度收支趨勢長條圖、月份支出分類圓餅圖、月報摘要</div>
+    </div>
+    <div class="fc">
+      <div class="fc-title"><i class="bi bi-phone me-1 text-secondary"></i>手機快速記帳</div>
+      <div class="fc-desc">行動版大按鈕介面，支援收支與股票快速紀錄，無需登入後台</div>
+    </div>
+  </div>
+
+  <!-- ────────────────── 系統網址 ────────────────── -->
+  <h2 class="section-title" id="urls">
+    <i class="bi bi-link-45deg me-2 text-primary"></i>系統網址
+  </h2>
+  <table class="table doc-table table-bordered">
+    <thead><tr><th style="width:160px">功能</th><th>網址</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td>📊 理財後台</td><td><span class="url-pill">/finance/</span></td><td>主要管理介面（收支、股票、預算、報表）</td></tr>
+      <tr><td>📱 手機快速記帳</td><td><span class="url-pill">/finance/quick/</span></td><td>行動版大按鈕介面，適合手機</td></tr>
+      <tr><td>🛠 系統後台</td><td><span class="url-pill">/admin/</span></td><td>使用者管理、操作紀錄（admin 專用）</td></tr>
+      <tr><td>📄 API 文件</td><td><span class="url-pill">/apidocs/</span></td><td>Swagger 互動式 API 文件</td></tr>
+      <tr><td>📖 使用說明</td><td><span class="url-pill">/docs/</span></td><td>本頁</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ────────────────── 登入 / 帳號 ────────────────── -->
+  <h2 class="section-title" id="login">
+    <i class="bi bi-shield-lock me-2 text-primary"></i>登入 / 帳號
+  </h2>
+
+  <h3 class="sub-title">登入步驟</h3>
+  <ol class="step-list">
+    <li>開啟 <span class="url-pill">/finance/</span> 或 <span class="url-pill">/finance/quick/</span>，右上方點擊「登入」。</li>
+    <li>輸入帳號與密碼，勾選「記住我 30 天」後點擊「登入」。</li>
+    <li>登入後 JWT Token 存於瀏覽器 <code>localStorage</code>，有效期間內重新整理不需再次登入。</li>
+    <li>點擊右上角使用者名稱 → 「登出」可清除 Token 並返回登入狀態。</li>
+  </ol>
+
+  <div class="tip-box">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong>記住我 30 天：</strong>勾選後 Token 有效期延長至 30 天；未勾選預設 8 小時後過期（依伺服器設定）。
+  </div>
+
+  <h3 class="sub-title">自助註冊</h3>
+  <ol class="step-list">
+    <li>登入頁點擊「還沒有帳號？立即註冊 →」切換至註冊表單。</li>
+    <li>填入帳號（3–32 字元，英數字／底線／連字號）、密碼（至少 6 字元）與顯示名稱（選填）。</li>
+    <li>點擊「建立帳號」，成功後自動登入並跳轉至主頁。</li>
+  </ol>
+
+  <div class="warn-box">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    <strong>管理員注意：</strong>自助註冊功能預設為關閉。若需開放，請在伺服器 <code>.env</code> 設定 <code>REGISTER_ENABLED=true</code> 後重啟服務。關閉時，僅管理員可在系統後台 <span class="url-pill">/admin/</span> 建立帳號。
+  </div>
+
+  <h3 class="sub-title">修改密碼 / 個人資料</h3>
+  <ol class="step-list">
+    <li>登入後台後，點擊右上角使用者名稱 → 「個人設定」。</li>
+    <li>可修改顯示名稱、Email，或點擊「修改密碼」輸入舊密碼與新密碼。</li>
+    <li>修改密碼後需重新登入。</li>
+  </ol>
+
+  <div class="warn-box">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    <strong>首次登入：</strong>系統預設帳號為 <code>admin / admin</code>，請立即修改密碼。
+  </div>
+
+  <!-- ────────────────── 收支記錄 ────────────────── -->
+  <h2 class="section-title" id="transaction">
+    <i class="bi bi-arrow-left-right me-2 text-primary"></i>收支記錄
+  </h2>
+
+  <h3 class="sub-title">新增記錄</h3>
+  <ol class="step-list">
+    <li>切換至後台「收支」分頁，點擊右上角「＋ 新增」按鈕。</li>
+    <li>選擇類型（收入 / 支出）、填入金額、日期、分類（可選）與說明。</li>
+    <li>點擊「儲存」，新記錄出現在列表頂端。</li>
+  </ol>
+
+  <h3 class="sub-title">篩選與搜尋</h3>
+  <p style="font-size:.9rem">在列表上方使用以下篩選條件：</p>
+  <table class="table doc-table table-bordered">
+    <thead><tr><th>條件</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td>日期範圍</td><td>設定開始日期與結束日期</td></tr>
+      <tr><td>類型</td><td>全部 / 收入 / 支出</td></tr>
+      <tr><td>分類</td><td>下拉選擇特定分類</td></tr>
+      <tr><td>關鍵字</td><td>搜尋說明欄位</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">編輯 / 刪除</h3>
+  <ol class="step-list">
+    <li>點擊記錄列末端的「✏️ 編輯」圖示開啟編輯表單，修改後儲存。</li>
+    <li>點擊「🗑 刪除」圖示，確認後永久刪除該筆記錄。</li>
+  </ol>
+
+  <!-- ────────────────── 分類管理 ────────────────── -->
+  <h2 class="section-title" id="category">
+    <i class="bi bi-tags me-2 text-primary"></i>分類管理
+  </h2>
+  <p style="font-size:.9rem">系統啟動時自動建立 16 個預設分類（10 支出 + 6 收入），可自行新增或修改。</p>
+
+  <ol class="step-list">
+    <li>切換至後台「分類」分頁。</li>
+    <li>點擊「＋ 新增分類」，填入名稱、類型（收入 / 支出）、顏色與圖示（Bootstrap Icons class）。</li>
+    <li>點擊分類右側「✏️」可修改，「🗑」可刪除（有關聯記錄的分類無法刪除）。</li>
+  </ol>
+
+  <div class="tip-box">
+    <i class="bi bi-info-circle me-1"></i>
+    圖示可至 <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a> 網站查詢，複製 class 名稱（如 <code>bi-house</code>）填入圖示欄位。
+  </div>
+
+  <!-- ────────────────── 定期交易 ────────────────── -->
+  <h2 class="section-title" id="recurring">
+    <i class="bi bi-arrow-repeat me-2 text-primary"></i>定期交易
+  </h2>
+  <p style="font-size:.9rem">設定定期自動產生的收支項目，例如每月薪水、房租、訂閱費。</p>
+
+  <ol class="step-list">
+    <li>切換至後台「定期交易」分頁，點擊「＋ 新增」。</li>
+    <li>填入名稱、類型、金額、分類、頻率（每月 / 每年）與起始日期。</li>
+    <li>設定後系統依照頻率自動在對應月份顯示待執行項目。</li>
+    <li>每月點擊「執行」將定期項目轉為正式收支記錄。</li>
+  </ol>
+
+  <!-- ────────────────── 股票交易 ────────────────── -->
+  <h2 class="section-title" id="stock">
+    <i class="bi bi-graph-up-arrow me-2 text-primary"></i>股票交易
+  </h2>
+
+  <h3 class="sub-title">新增股票記錄</h3>
+  <ol class="step-list">
+    <li>切換至後台「股票」分頁，點擊「＋ 新增」。</li>
+    <li>填入股票代號（自動轉大寫）、市場（台股 TW / 美股 US / 港股 HK）。</li>
+    <li>選擇動作：<strong>買入</strong>、<strong>賣出</strong> 或 <strong>股利</strong>。</li>
+    <li>填入股數、單價、手續費（選填）後儲存。</li>
+  </ol>
+
+  <table class="table doc-table table-bordered mt-2">
+    <thead><tr><th>動作</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td>買入（buy）</td><td>增加持倉股數，計入平均成本</td></tr>
+      <tr><td>賣出（sell）</td><td>減少持倉股數，計算已實現損益</td></tr>
+      <tr><td>股利（dividend）</td><td>記錄現金股利，不影響持倉股數</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ────────────────── 持倉與損益 ────────────────── -->
+  <h2 class="section-title" id="portfolio">
+    <i class="bi bi-pie-chart me-2 text-primary"></i>持倉與損益
+  </h2>
+
+  <h3 class="sub-title">持倉彙總</h3>
+  <p style="font-size:.9rem">「股票」分頁上方顯示各持倉股票的持有股數與平均成本。</p>
+  <table class="table doc-table table-bordered">
+    <thead><tr><th>欄位</th><th>計算方式</th></tr></thead>
+    <tbody>
+      <tr><td>持有股數</td><td>買入總股數 − 賣出總股數</td></tr>
+      <tr><td>平均成本</td><td>買入總金額 ÷ 買入總股數</td></tr>
+      <tr><td>已實現損益</td><td>賣出金額 − 對應買入成本（含手續費）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tip-box">
+    <i class="bi bi-info-circle me-1"></i>
+    持倉為 0 的股票不顯示在持倉列表，但交易記錄仍保留。
+  </div>
+
+  <!-- ────────────────── 預算管理 ────────────────── -->
+  <h2 class="section-title" id="budget">
+    <i class="bi bi-wallet2 me-2 text-primary"></i>預算管理
+  </h2>
+  <ol class="step-list">
+    <li>切換至後台「預算」分頁，選擇年份與月份。</li>
+    <li>針對各支出分類輸入當月預算金額，點擊「儲存」（系統採 UPSERT，重複儲存不會產生重複資料）。</li>
+    <li>「執行率」區塊即時顯示各分類已用金額 / 預算金額與百分比。</li>
+  </ol>
+
+  <table class="table doc-table table-bordered">
+    <thead><tr><th>使用率</th><th>顯示</th></tr></thead>
+    <tbody>
+      <tr><td>&lt; 80%</td><td>綠色進度條，正常</td></tr>
+      <tr><td>80% – 100%</td><td>黃色進度條，接近上限</td></tr>
+      <tr><td>&gt; 100%</td><td>紅色進度條，已超支</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ────────────────── 報表分析 ────────────────── -->
+  <h2 class="section-title" id="report">
+    <i class="bi bi-bar-chart-line me-2 text-primary"></i>報表分析
+  </h2>
+  <p style="font-size:.9rem">切換至後台「報表」分頁，提供以下視覺化圖表：</p>
+
+  <table class="table doc-table table-bordered">
+    <thead><tr><th style="width:200px">報表</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td>年度收支趨勢</td><td>長條圖，比較全年各月份收入與支出金額</td></tr>
+      <tr><td>月份支出分類</td><td>圓餅圖，顯示當月各支出分類佔比</td></tr>
+      <tr><td>月報摘要</td><td>本月收入、支出、結餘、各分類小計</td></tr>
+      <tr><td>儀表板摘要</td><td>本月概況、預算執行率快覽、持倉數、最近 5 筆交易</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ────────────────── 資料匯出 ────────────────── -->
+  <h2 class="section-title" id="export">
+    <i class="bi bi-download me-2 text-primary"></i>資料匯出
+  </h2>
+  <ol class="step-list">
+    <li>切換至「報表」分頁，點擊右上角「匯出」按鈕。</li>
+    <li>選擇資料類型（收支記錄 / 股票記錄）與格式（CSV / Excel）。</li>
+    <li>可指定日期範圍，點擊「下載」後瀏覽器自動下載檔案。</li>
+  </ol>
+
+  <div class="tip-box">
+    <i class="bi bi-info-circle me-1"></i>
+    CSV 格式採 <strong>UTF-8 BOM</strong> 編碼，可直接以 Microsoft Excel 開啟並正確顯示中文。
+  </div>
+
+  <!-- ────────────────── 手機快速記帳 ────────────────── -->
+  <h2 class="section-title" id="quick">
+    <i class="bi bi-phone me-2 text-primary"></i>手機快速記帳
+  </h2>
+  <p style="font-size:.9rem">
+    開啟 <span class="url-pill">/finance/quick/</span>，提供行動裝置最佳化的大按鈕輸入介面。
+    上方模式列切換「💰 收支」與「📈 股票」兩種模式。
+  </p>
+
+  <h3 class="sub-title" id="quick-txn">💰 收支模式</h3>
+  <ol class="step-list">
+    <li>點擊上方模式列的「💰 收支」（預設為此模式）。</li>
+    <li>選擇類型（支出 / 收入），點擊分類圖示。</li>
+    <li>使用數字鍵盤輸入金額（支援小數點）。</li>
+    <li>填入說明（選填），確認日期後點擊「記帳」送出。</li>
+    <li>成功後金額與說明自動清空，可繼續下一筆記錄。</li>
+  </ol>
+
+  <div class="tip-box">
+    <i class="bi bi-info-circle me-1"></i>
+    近期記錄顯示於頁面下方，可點擊切換「收支」與「股票」兩個紀錄分頁。
+  </div>
+
+  <h3 class="sub-title" id="quick-stock">📈 股票快速紀錄</h3>
+  <ol class="step-list">
+    <li>點擊上方模式列的「📈 股票」切換至股票模式。</li>
+    <li>輸入股票代號（自動轉大寫，例如 <code>2330</code> 或 <code>AAPL</code>）。</li>
+    <li>選擇市場（台股 / 美股）與動作（買入 / 賣出 / 股利）。</li>
+    <li>
+      點擊欄位標籤切換目前輸入目標：
+      <ul style="font-size:.85rem;margin-top:.3rem">
+        <li><strong>股數</strong>：輸入買賣股數（股利模式下輸入股利金額）</li>
+        <li><strong>價格</strong>：輸入每股單價</li>
+        <li><strong>手續費</strong>：輸入手續費（選填）</li>
+      </ul>
+    </li>
+    <li>底部自動計算並顯示總金額（股數 × 價格 ＋ 手續費）。</li>
+    <li>點擊「記錄股票」送出，成功後欄位自動清空。</li>
+  </ol>
+
+  <div class="warn-box">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    股利模式：「股數」欄位輸入股利金額，「價格」欄位無需填入，系統會以股利金額為準記錄。
+  </div>
+
+  <h3 class="sub-title">快速記帳登入</h3>
+  <ol class="step-list">
+    <li>首次使用時頁面底部顯示登入 / 註冊區塊。</li>
+    <li>輸入帳號與密碼（或切換至「註冊」分頁建立新帳號）後登入。</li>
+    <li>登入後記帳操作會自動與你的帳號關聯。</li>
+  </ol>
+
+  <!-- ────────────────── 角色與權限 ────────────────── -->
+  <h2 class="section-title" id="roles">
+    <i class="bi bi-person-badge me-2 text-primary"></i>角色與權限
+  </h2>
+  <table class="table doc-table table-bordered">
+    <thead><tr><th style="width:120px">角色</th><th>可存取功能</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge bg-danger">admin</span></td>
+        <td>全部功能：理財後台、手機快速記帳、系統後台（<span class="url-pill">/admin/</span>）、使用者管理、操作紀錄</td>
+      </tr>
+      <tr>
+        <td><span class="badge bg-primary">user</span></td>
+        <td>理財後台（<span class="url-pill">/finance/</span>）與手機快速記帳（<span class="url-pill">/finance/quick/</span>）；各帳號資料互相隔離</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="tip-box">
+    <i class="bi bi-info-circle me-1"></i>
+    各使用者的收支、股票、預算與分類資料完全隔離，admin 可在系統後台查看所有使用者。
+  </div>
+
+  <!-- ────────────────── 使用者管理 ────────────────── -->
+  <h2 class="section-title" id="user-mgmt">
+    <i class="bi bi-people me-2 text-primary"></i>使用者管理
+  </h2>
+  <p style="font-size:.9rem">僅 <span class="badge bg-danger">admin</span> 可存取 <span class="url-pill">/admin/</span> 系統後台進行使用者管理。</p>
+
+  <h3 class="sub-title">新增使用者</h3>
+  <ol class="step-list">
+    <li>進入 <span class="url-pill">/admin/</span>，切換至「使用者管理」分頁。</li>
+    <li>點擊「＋ 新增使用者」，填入帳號、密碼、顯示名稱與角色（admin / user）。</li>
+    <li>點擊「建立」，新帳號立即可登入，系統自動初始化預設財務分類。</li>
+  </ol>
+
+  <h3 class="sub-title">停用 / 啟用帳號</h3>
+  <ol class="step-list">
+    <li>在使用者列表點擊帳號旁的「⚙️ 操作」。</li>
+    <li>選擇「停用」可禁止該帳號登入（帳號資料保留）；選擇「啟用」恢復登入權限。</li>
+  </ol>
+
+  <h3 class="sub-title">重設密碼</h3>
+  <ol class="step-list">
+    <li>在使用者列表找到目標帳號，點擊「重設密碼」。</li>
+    <li>輸入新密碼後確認，下次登入時使用者需使用新密碼。</li>
+  </ol>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ScrollSpy：監聽滾動，高亮對應側欄連結
+  (function () {
+    const links = document.querySelectorAll('#sidebar .nav-link[href^="#"]');
+    const sections = Array.from(links).map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+
+    function onScroll() {
+      let active = sections[0];
+      for (const sec of sections) {
+        if (sec.getBoundingClientRect().top <= 80) active = sec;
+      }
+      links.forEach(l => l.classList.remove('active'));
+      const al = document.querySelector(`#sidebar .nav-link[href="#${active.id}"]`);
+      if (al) al.classList.add('active');
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+</body>
+</html>

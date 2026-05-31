@@ -8,7 +8,7 @@
 #   DOMAIN=example.com   ← 指定域名則只接受該域名的請求
 # ============================================================
 upstream flask_app {
-    server app:5000;
+    server app:${FLASK_PORT};
 }
 
 server {
